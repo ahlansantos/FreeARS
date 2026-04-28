@@ -3,37 +3,41 @@
 framebuffer_t fb={0};
 
 void fb_init(uint64_t magic, uint64_t mbi) {
-    if (magic != 0x36d76289) {  
+    if (magic != 0x36d76289) {
         fb.available = 0;
         return;
     }
-    
-    uint8_t *tags = (uint8_t *)mbi;
-    uint32_t total_size = *(uint32_t *)tags;
-    uint32_t *tag = (uint32_t *)(tags + 8);  
-    
-    while (1) {
-        uint32_t type = tag[0];
-        uint32_t size = tag[1];
-        
-        if (type == 0) break;  
-        
-        if (type == 8) {  
-            uint64_t addr_low = (uint64_t)tag[2];
-            uint64_t addr_high = (uint64_t)tag[3];
-            fb.address = (uint32_t *)(addr_low | (addr_high << 32));
-            fb.pitch = tag[4];
-            fb.width = tag[5];
-            fb.height = tag[6];
-            fb.bpp = tag[7];
-            fb.available = 1;
-            return;
+
+    uint8_t *tags = (uint8_t*)mbi;
+    uint32_t total_size = *(uint32_t*)tags;
+    uint8_t *current = tags + 8;
+    uint8_t *end = tags + total_size;
+
+    while (current < end) {
+        uint32_t type = *(uint32_t*)(current);
+        uint32_t size = *(uint32_t*)(current + 4);
+
+        if (type == 0) break;
+        if (type == 8) {
+            uint64_t fb_addr = *(uint64_t*)(current + 8);
+            uint32_t pitch = *(uint32_t*)(current + 16);
+            uint32_t width = *(uint32_t*)(current + 20);
+            uint32_t height = *(uint32_t*)(current + 24);
+            uint32_t bpp = *(uint32_t*)(current + 28);
+
+            if (fb_addr && width && height) {
+                fb.address = (uint32_t*)fb_addr;
+                fb.pitch = pitch;
+                fb.width = width;
+                fb.height = height;
+                fb.bpp = bpp;
+                fb.available = 1;
+                return;
+            }
         }
-        
-        tag = (uint32_t *)((uint8_t *)tag + size);
-        if ((uint8_t *)tag >= tags + total_size) break;
+        current += ((size + 7) / 8) * 8;
     }
-    
+
     fb.available = 0;
 }
 
