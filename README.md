@@ -11,14 +11,15 @@ FreeARS is a hobby x86 kernel written from scratch. It boots, has a shell, handl
 
 ## Some screenshots
 
-![Help cmd](https://imgur.com/E3w06NN.png)
+**0.01 (VESA - VGA not used anymore)**
+![Help cmd](https://imgur.com/BA2rVzQ.png)
 ---
 
 ## Features (as of 0.01)
 
 - Booting via GRUB (Multiboot)
 - 32-bit protected mode
-- VGA text console with scrolling
+- VESA Graphical console (VGA not used anymore - just a simple fallback)
 - Interactive shell
 - Dynamic memory allocator (`kmalloc`/`kfree` with splitting & coalescing)
 - Paging (identity-mapped first 16 MB)
