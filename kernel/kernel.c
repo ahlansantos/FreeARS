@@ -7,9 +7,6 @@
 #include "../drivers/timer.h"
 #include <stdint.h>
 
-void outb(uint16_t p,uint8_t v){__asm__ volatile("outb %0,%1"::"a"(v),"Nd"(p));}
-uint8_t inb(uint16_t p){uint8_t v;__asm__ volatile("inb %1,%0":"=a"(v):"Nd"(p));return v;}
-
 static uint32_t gfx_x=8,gfx_y=8,gfx_fg=0xFFFFFF,gfx_bg=0x000000;
 
 void gfx_scroll(){
@@ -82,11 +79,11 @@ void cmd_help(){
     gfx_set_color(c_rosa,gfx_bg);gfx_println("");gfx_println("  Shift/Caps Lock supported!");gfx_println("");
 }
 
-void cmd_uname(){gfx_set_color(0xFFFF,gfx_bg);gfx_println("  FreeARS 0.01 - x86 32-bit");}
+void cmd_uname(){gfx_set_color(0xFFFF,gfx_bg);gfx_println("  FreeARS 0.02 - x86_64 64-bit");}
 void cmd_echo(const char*a){if(!a[0]){gfx_set_color(0xFFFF00,gfx_bg);gfx_println("  echo: nothing");return;}gfx_set_color(0xFF00,gfx_bg);gfx_print("  ");gfx_println(a);}
 void cmd_sleep(const char*a){if(!a[0]){gfx_set_color(0xFFFF00,gfx_bg);gfx_println("  usage: sleep <ms>");return;}uint32_t ms=0;for(int i=0;a[i];i++){if(a[i]>='0'&&a[i]<='9')ms=ms*10+a[i]-'0';else{gfx_println("  invalid");return;}}gfx_set_color(0xFFFF,gfx_bg);gfx_print("  Sleeping ");gfx_print_int(ms);gfx_println(" ms...");sleep_ms(ms);gfx_set_color(0xFF00,gfx_bg);gfx_println("  Done!");}
 void cmd_memtest(){void*a=kmalloc(128),*b=kmalloc(64);kfree(a);void*c=kmalloc(32);gfx_set_color(c&&b?0xFF00:0xFF0000,gfx_bg);gfx_println(c&&b?"  kmalloc ok!":"  kmalloc failed!");kfree(b);kfree(c);}
-void cmd_pagetest(){volatile uint32_t*p=(uint32_t*)0x300000;*p=0xDEADBEEF;gfx_set_color(*p==0xDEADBEEF?0xFF00:0xFF0000,gfx_bg);gfx_println(*p==0xDEADBEEF?"  paging ok!":"  paging failed!");}
+void cmd_pagetest(){volatile uint64_t*p=(uint64_t*)0x300000;*p=0xDEADBEEF;gfx_set_color(*p==0xDEADBEEF?0xFF00:0xFF0000,gfx_bg);gfx_println(*p==0xDEADBEEF?"  paging ok!":"  paging failed!");}
 void cmd_ticks(){gfx_set_color(0xFFFF,gfx_bg);gfx_print("  ticks: ");gfx_set_color(0xFFFFFF,gfx_bg);gfx_print_int(timer_get_ticks());gfx_println("");}
 
 void cmd_crash(){
@@ -120,14 +117,14 @@ void cmd_fastfetch(){
     gfx_println("");
     gfx_set_color(w,gfx_bg);gfx_print("  ");gfx_set_color(r,gfx_bg);gfx_println("user@FreeARS");
     gfx_set_color(gr,gfx_bg);gfx_println("  -----------");
-    gfx_set_color(w,gfx_bg);gfx_print("  OS:       ");gfx_set_color(g,gfx_bg);gfx_println("FreeARS 0.01");
-    gfx_set_color(w,gfx_bg);gfx_print("  Kernel:   ");gfx_set_color(g,gfx_bg);gfx_println("x86 32-bit");
-    gfx_set_color(w,gfx_bg);gfx_print("  Shell:    ");gfx_set_color(g,gfx_bg);gfx_println("fsh 0.1");
+    gfx_set_color(w,gfx_bg);gfx_print("  OS:       ");gfx_set_color(g,gfx_bg);gfx_println("FreeARS 0.02");
+    gfx_set_color(w,gfx_bg);gfx_print("  Kernel:   ");gfx_set_color(g,gfx_bg);gfx_println("x86_64 64-bit");
+    gfx_set_color(w,gfx_bg);gfx_print("  Shell:    ");gfx_set_color(g,gfx_bg);gfx_println("fsh 0.2");
     uint32_t t=timer_get_ticks()/100;uint32_t h=t/3600,m=(t%3600)/60,s=t%60;
     gfx_set_color(w,gfx_bg);gfx_print("  Uptime:   ");gfx_set_color(g,gfx_bg);
     if(h){gfx_print_int(h);gfx_print("h ");}if(m){gfx_print_int(m);gfx_print("m ");}gfx_print_int(s);gfx_println("s");
     gfx_set_color(w,gfx_bg);gfx_print("  Memory:   ");gfx_set_color(g,gfx_bg);gfx_println("256 MB");
-    gfx_set_color(w,gfx_bg);gfx_print("  CPU:      ");gfx_set_color(g,gfx_bg);gfx_println("x86 Compatible");
+    gfx_set_color(w,gfx_bg);gfx_print("  CPU:      ");gfx_set_color(g,gfx_bg);gfx_println("x86_64 Compatible");
     gfx_set_color(w,gfx_bg);gfx_print("  Display:  ");gfx_set_color(g,gfx_bg);gfx_print_int(fb.width);gfx_print("x");gfx_print_int(fb.height);gfx_println(" VESA");
     gfx_set_color(w,gfx_bg);gfx_print("  Input:    ");gfx_set_color(g,gfx_bg);gfx_println("PS/2 Keyboard (polling)");
     gfx_println("");
@@ -155,32 +152,44 @@ void gfx_shell(){
     }
 }
 
-void kernel_main(uint32_t magic,uint32_t mbi){
+void kernel_main(uint64_t magic, uint64_t mbi){
     paging_init();kmalloc_init();idt_init();
     pic_remap(0x20,0x28);timer_init(100);
     outb(0x21,inb(0x21)|2);__asm__ volatile("sti");
     fb_init(magic,mbi);
-    if(fb.available){
-        gfx_clear();
-        gfx_set_color(0x88CC,gfx_bg);
-        gfx_println("   ______                        _____   _____ ");
-        gfx_println("  |  ____|                 /\\   |  __ \\ / ____|");
-        gfx_println("  | |__ _ __ ___  ___     /  \\  | |__) | (___  ");
-        gfx_set_color(0xFFFFFF,gfx_bg);
-        gfx_println("  |  __| '__/ _ \\/ _ \\   / /\\ \\ |  _  / \\___ \\ ");
-        gfx_println("  | |  | | |  __/  __/  / ____ \\| | \\ \\ ____) |");
-        gfx_set_color(0x88CC,gfx_bg);
-        gfx_println("  |_|  |_|  \\___|\\___| /_/    \\_\\_|  \\_\\_____/ ");
-        gfx_println("                                               ");
-        gfx_set_color(0x888888,gfx_bg);
-        gfx_println("  FreeARS 0.01 -- Another Random System");
-        gfx_println("  type 'help' for available commands.");
-        gfx_println("");gfx_shell();
-    }else{
-        volatile unsigned short*v=(unsigned short*)0xB8000;
-        for(int i=0;i<80*25;i++)v[i]=0x0720;
-        char*b="FreeARS 0.01 - VGA Fallback Mode";
-        for(int i=0;b[i];i++)v[i]=b[i]|0x0700;
-        for(;;)__asm__ volatile("hlt");
-    }
+    
+    // try force buffer domain endere;o forca
+    fb.address = (uint32_t *)0xFD000000;
+    fb.width = 800;
+    fb.height = 600;
+    fb.pitch = 3200;
+    fb.bpp = 32;
+    fb.available = 1;
+    
+    // old red screen test bfr
+    /* for (uint32_t y = 0; y < 600; y++) {
+        for (uint32_t x = 0; x < 800; x++) {
+            fb_put_pixel(x, y, 0x00FF0000);
+        }
+    } */
+    for(volatile int i=0;i<300000000;i++);
+    
+    gfx_bg = 0x00111122;
+    gfx_clear();
+    gfx_x = 8;
+    gfx_y = 8;
+    gfx_set_color(0x88CC,gfx_bg);
+    gfx_println("   ______                        _____   _____ ");
+    gfx_println("  |  ____|                 /\\   |  __ \\ / ____|");
+    gfx_println("  | |__ _ __ ___  ___     /  \\  | |__) | (___  ");
+    gfx_set_color(0xFFFFFF,gfx_bg);
+    gfx_println("  |  __| '__/ _ \\/ _ \\   / /\\ \\ |  _  / \\___ \\ ");
+    gfx_println("  | |  | | |  __/  __/  / ____ \\| | \\ \\ ____) |");
+    gfx_set_color(0x88CC,gfx_bg);
+    gfx_println("  |_|  |_|  \\___|\\___| /_/    \\_\\_|  \\_\\_____/ ");
+    gfx_println("                                               ");
+    gfx_set_color(0x888888,gfx_bg);
+    gfx_println("  FreeARS 0.02 -- Another Random System");
+    gfx_println("  type 'help' for available commands.");
+    gfx_println("");gfx_shell();
 }

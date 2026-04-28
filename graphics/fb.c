@@ -1,14 +1,42 @@
 #include "fb.h"
 #include "font.h"
 framebuffer_t fb={0};
-void fb_init(uint32_t magic, uint32_t mbi) {
-    if(magic!=0x2BADB002){fb.available=0;return;}
-    uint32_t*m=(uint32_t*)mbi;
-    if(!(m[0]&(1<<11))){fb.available=0;return;}
-    fb.address=(uint32_t*)(uint64_t)m[22];
-    fb.pitch=m[24]; fb.width=m[25]; fb.height=m[26]; fb.bpp=m[27];
-    fb.available=1;
+
+void fb_init(uint64_t magic, uint64_t mbi) {
+    if (magic != 0x36d76289) {  
+        fb.available = 0;
+        return;
+    }
+    
+    uint8_t *tags = (uint8_t *)mbi;
+    uint32_t total_size = *(uint32_t *)tags;
+    uint32_t *tag = (uint32_t *)(tags + 8);  
+    
+    while (1) {
+        uint32_t type = tag[0];
+        uint32_t size = tag[1];
+        
+        if (type == 0) break;  
+        
+        if (type == 8) {  
+            uint64_t addr_low = (uint64_t)tag[2];
+            uint64_t addr_high = (uint64_t)tag[3];
+            fb.address = (uint32_t *)(addr_low | (addr_high << 32));
+            fb.pitch = tag[4];
+            fb.width = tag[5];
+            fb.height = tag[6];
+            fb.bpp = tag[7];
+            fb.available = 1;
+            return;
+        }
+        
+        tag = (uint32_t *)((uint8_t *)tag + size);
+        if ((uint8_t *)tag >= tags + total_size) break;
+    }
+    
+    fb.available = 0;
 }
+
 void fb_put_pixel(uint32_t x,uint32_t y,uint32_t c){
     if(!fb.available||x>=fb.width||y>=fb.height)return;
     uint32_t*p=(uint32_t*)((uint8_t*)fb.address+y*fb.pitch+x*4);*p=c;
