@@ -3,41 +3,30 @@
 > *"I'm doing a (free) operating system (just a hobby, won't be big and professional like linux)"*  
 > — inspired by Linus Torvalds, 1991
 
-FreeARS is a hobby x86_64 kernel written from scratch. Now with UEFI support and 64-bit mode, aiming to run on modern hardware.
+FreeARS is a hobby x86 kernel written from scratch. It boots, has a graphical shell, handles interrupts, and doesn't catch fire (most of the time).
 
-**Current version:** 0.02  
-**Branch:** `64bit` (active development)
+**Current version:** 0.01  
+**Branch:** `32bit` (unused - unstable, final)
 
 ---
 
 ## Screenshots
 
-*Coming soon — once the framebuffer works on real hardware!*
-
----
-
-## What's new in 0.02
-
-- **x86_64 (64-bit)** protected mode
-- **UEFI boot** via Multiboot2 (GOP framebuffer)
-- 4-level paging (PML4)
-- Rewritten from 32-bit codebase
-- Targeting modern GPUs (GOP instead of VESA VBE)
-- Cross-compiler: `x86_64-elf-gcc`
+![FreeARS Shell](https://imgur.com/DmO9xxf.png)
 
 ---
 
 ## Features
 
-- Multiboot2 (GRUB) with UEFI support
-- 64-bit long mode
-- GOP framebuffer with bitmap font
+- Multiboot (GRUB)
+- 32-bit protected mode
+- VESA framebuffer (800x600x32 by default) with bitmap font
 - Graphical shell with scroll
 - Commands: help, clear, uname, echo, sleep, memtest, pagetest, crash, ticks, fastfetch, arpm
 - Dynamic memory allocator (kmalloc/kfree)
-- 4-level paging
+- Paging with 4MB pages (PSE)
 - IDT with graphical exception handler
-- APIC/8259 + Timer (100 Hz)
+- PIC 8259 + PIT timer (100 Hz)
 - PS/2 Keyboard polling with Shift/Caps Lock
 - Custom ASCII art boot screen
 
@@ -46,7 +35,7 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with UEFI support and
 ## What it lacks
 
 - Filesystem
-- User mode (ring 3)
+- User mode
 - Multitasking
 - Mouse
 - Networking
@@ -57,13 +46,13 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with UEFI support and
 
 ## Hardware
 
-Tested on QEMU. Should work on UEFI hardware with GOP.
-
 ```bash
 dd if=freeARS.iso of=/dev/sdX bs=1M status=progress
 ```
 
-Or use [Ventoy](https://ventoy.net). Requires **UEFI boot** (no Legacy BIOS).
+Or use [Ventoy](https://ventoy.net). Requires Legacy BIOS. UEFI not supported yet.
+
+> **Note:** VESA may not work on modern GPUs (RTX 3050 etc). 
 
 ---
 
@@ -86,16 +75,12 @@ Or use [Ventoy](https://ventoy.net). Requires **UEFI boot** (no Legacy BIOS).
 
 ---
 
-## History
+## Future
 
-| Version | Branch | Description |
-|---------|--------|-------------|
-| 0.01 | `32bit` | First release. 32-bit, VESA, Legacy BIOS |
-| 0.02 | `64bit` | Current. 64-bit, UEFI, GOP |
+This MAY be the **final 32-bit branch**. Work continues on the `64bit` branch with UEFI support to run on modern hardware.
 
 ---
 
 ## License
 
 MIT
-```
