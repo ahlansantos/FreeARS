@@ -5,86 +5,83 @@
 
 FreeARS is a hobby x86 kernel written from scratch. It boots, has a graphical shell, handles interrupts, and doesn't catch fire (most of the time).
 
-**Current version:** 0.01
+**Current version:** 0.01  
+**Branch:** `32bit` (unused - unstable, final)
 
 ---
 
 ## Screenshots
 
-**Shell with VESA framebuffer (1280x720 - 32 Bit Branch)**
-![Shell](https://imgur.com/DmO9xxf.png)
+![FreeARS Shell](https://imgur.com/DmO9xxf.png)
 
 ---
 
-## Features (as of 0.01)
+## Features
 
-- Booting via GRUB (Multiboot)
+- Multiboot (GRUB)
 - 32-bit protected mode
-- VESA framebuffer (1280x720x32) with bitmap font
-- Graphical shell with scroll support
-- Interactive commands (help, echo, sleep, clear, fastfetch)
-- VGA text mode fallback (if VESA unavailable)
-- Dynamic memory allocator (`kmalloc`/`kfree` with splitting & coalescing)
-- Paging (4MB pages, PSE enabled)
-- IDT with graphical exception handler (shows registers on crash)
-- PIC 8259 remapped
-- PIT timer at 100 Hz
-- PS/2 keyboard via IRQ1 with Shift/Caps Lock support
-- Fake package manager (`arpm`)
+- VESA framebuffer (800x600x32 by default) with bitmap font
+- Graphical shell with scroll
+- Commands: help, clear, uname, echo, sleep, memtest, pagetest, crash, ticks, fastfetch, arpm
+- Dynamic memory allocator (kmalloc/kfree)
+- Paging with 4MB pages (PSE)
+- IDT with graphical exception handler
+- PIC 8259 + PIT timer (100 Hz)
+- PS/2 Keyboard polling with Shift/Caps Lock
 - Custom ASCII art boot screen
 
 ---
 
 ## What it lacks
 
-- A filesystem
+- Filesystem
 - User mode
 - Multitasking
-- Mouse support (coming soon)
-- Networking (lol)
-- Any practical use whatsoever
-- GPU Drivers? I'll try to add it.
+- Mouse
+- Networking
+- GPU drivers
+- Any practical use
 
 ---
 
-## Running on real hardware
+## Hardware
 
 ```bash
-$ dd if=freeARS.iso of=/dev/sdX bs=1M status=progress
+dd if=freeARS.iso of=/dev/sdX bs=1M status=progress
 ```
 
-Or use [Ventoy](https://ventoy.net).
+Or use [Ventoy](https://ventoy.net). Requires Legacy BIOS. UEFI not supported yet.
 
-**Note:** Requires Legacy BIOS boot. UEFI is not supported yet.
+> **Note:** VESA may not work on modern GPUs (RTX 3050 etc). 
 
 ---
 
 ## Commands
 
-| Command | What it does |
+| Command | Description |
 |---------|-------------|
-| `help` | Shows available commands |
-| `clear` | Clears the screen |
-| `uname` | Prints system info |
-| `echo <text>` | Prints text |
-| `sleep <ms>` | Sleeps for milliseconds |
-| `memtest` | Tests memory allocator |
-| `pagetest` | Tests paging |
-| `crash` | Forces exception (tests graphical exception handler) |
-| `ticks` | Shows timer tick count |
-| `fastfetch` | System info display |
-| `arpm list` | Lists fake packages |
-| `arpm -ci <pkg>` | "Installs" a fake package |
+| `help` | Show commands |
+| `clear` | Clear screen |
+| `uname` | System info |
+| `echo <text>` | Print text |
+| `sleep <ms>` | Sleep |
+| `memtest` | Test heap |
+| `pagetest` | Test paging |
+| `crash` | Test exception handler |
+| `ticks` | Timer ticks |
+| `fastfetch` | System info |
+| `arpm list` | List packages |
+| `arpm -ci <pkg>` | Install package |
 
 ---
 
-## Why?
+## Future
 
-Because every programmer should write an OS at least once.  
-Also, because I wanted to see if I could make `crash` print a pretty red screen.
+This MAY be the **final 32-bit branch**. Work continues on the `64bit` branch with UEFI support to run on modern hardware.
 
 ---
 
 ## License
 
-MIT — do whatever you want. If you make something cool, let me know.
+MIT
+```
