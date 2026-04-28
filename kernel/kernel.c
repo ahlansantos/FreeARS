@@ -158,38 +158,40 @@ void kernel_main(uint64_t magic, uint64_t mbi){
     outb(0x21,inb(0x21)|2);__asm__ volatile("sti");
     fb_init(magic,mbi);
     
-    // try force buffer domain endere;o forca
-    fb.address = (uint32_t *)0xFD000000;
-    fb.width = 800;
-    fb.height = 600;
-    fb.pitch = 3200;
-    fb.bpp = 32;
-    fb.available = 1;
+    // simple fallback if graphic init gop wdont work
+    if (!fb.available) {
+        fb.address = (uint32_t *)0xFD000000;
+        fb.width = 800;
+        fb.height = 600;
+        fb.pitch = 3200;
+        fb.bpp = 32;
+        fb.available = 1;
+    }
     
-    // old red screen test bfr
-    /* for (uint32_t y = 0; y < 600; y++) {
-        for (uint32_t x = 0; x < 800; x++) {
-            fb_put_pixel(x, y, 0x00FF0000);
-        }
-    } 
-    for(volatile int i=0;i<300000000;i++); */
-    
-    gfx_bg = 0x00111122;
-    gfx_clear();
-    gfx_x = 8;
-    gfx_y = 8;
-    gfx_set_color(0x88CC,gfx_bg);
-    gfx_println("   ______                        _____   _____ ");
-    gfx_println("  |  ____|                 /\\   |  __ \\ / ____|");
-    gfx_println("  | |__ _ __ ___  ___     /  \\  | |__) | (___  ");
-    gfx_set_color(0xFFFFFF,gfx_bg);
-    gfx_println("  |  __| '__/ _ \\/ _ \\   / /\\ \\ |  _  / \\___ \\ ");
-    gfx_println("  | |  | | |  __/  __/  / ____ \\| | \\ \\ ____) |");
-    gfx_set_color(0x88CC,gfx_bg);
-    gfx_println("  |_|  |_|  \\___|\\___| /_/    \\_\\_|  \\_\\_____/ ");
-    gfx_println("                                               ");
-    gfx_set_color(0x888888,gfx_bg);
-    gfx_println("  FreeARS 0.02 -- Another Random System");
-    gfx_println("  type 'help' for available commands.");
-    gfx_println("");gfx_shell();
+    if(fb.available){
+        gfx_bg = 0x00111122;
+        gfx_clear();
+        gfx_x = 8;
+        gfx_y = 8;
+        gfx_set_color(0x88CC,gfx_bg);
+        gfx_println("   ______                        _____   _____ ");
+        gfx_println("  |  ____|                 /\\   |  __ \\ / ____|");
+        gfx_println("  | |__ _ __ ___  ___     /  \\  | |__) | (___  ");
+        gfx_set_color(0xFFFFFF,gfx_bg);
+        gfx_println("  |  __| '__/ _ \\/ _ \\   / /\\ \\ |  _  / \\___ \\ ");
+        gfx_println("  | |  | | |  __/  __/  / ____ \\| | \\ \\ ____) |");
+        gfx_set_color(0x88CC,gfx_bg);
+        gfx_println("  |_|  |_|  \\___|\\___| /_/    \\_\\_|  \\_\\_____/ ");
+        gfx_println("                                               ");
+        gfx_set_color(0x888888,gfx_bg);
+        gfx_println("  FreeARS 0.02 -- Another Random System");
+        gfx_println("  type 'help' for available commands.");
+        gfx_println("");gfx_shell();
+    }else{
+        volatile unsigned short*v=(unsigned short*)0xB8000;
+        for(int i=0;i<80*25;i++)v[i]=0x0720;
+        char*b="FreeARS 0.02 - VGA Fallback";
+        for(int i=0;b[i];i++)v[i]=b[i]|0x0700;
+        for(;;)__asm__ volatile("hlt");
+    }
 }
