@@ -1,4 +1,4 @@
-# FreeARS - Another Random System
+# FreeARS - Another Random System (64 Bit Branch)
 
 > *"I'm doing a (free) operating system (just a hobby, won't be big and professional like linux)"*  
 > — inspired by Linus Torvalds, 1991
@@ -11,8 +11,7 @@ FreeARS is a hobby x86 kernel written from scratch. It boots, has a graphical sh
 
 ## Screenshots
 
-**Shell with VESA framebuffer (1280x720 - 32 Bit Branch)**
-![Shell](https://imgur.com/DmO9xxf.png)
+No photos for now.
 
 ---
 
