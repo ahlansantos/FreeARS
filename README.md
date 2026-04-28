@@ -11,7 +11,7 @@ FreeARS is a hobby x86 kernel written from scratch. It boots, has a graphical sh
 
 ## Screenshots
 
-**Shell with VESA framebuffer (1280x720)**
+**Shell with VESA framebuffer (1280x720 - 32 Bit Branch)**
 ![Shell](https://imgur.com/DmO9xxf.png)
 
 ---
