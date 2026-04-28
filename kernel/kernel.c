@@ -171,8 +171,8 @@ void kernel_main(uint64_t magic, uint64_t mbi){
         for (uint32_t x = 0; x < 800; x++) {
             fb_put_pixel(x, y, 0x00FF0000);
         }
-    } */
-    for(volatile int i=0;i<300000000;i++);
+    } 
+    for(volatile int i=0;i<300000000;i++); */
     
     gfx_bg = 0x00111122;
     gfx_clear();
