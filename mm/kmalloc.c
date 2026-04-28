@@ -2,10 +2,10 @@
 #define HEAP_START 0x200000
 #define HEAP_SIZE 0x100000
 #define MAGIC 0xAB
-typedef struct block{uint32_t size;uint8_t free,magic;struct block*next;}block_t;
+typedef struct block{uint64_t size;uint8_t free,magic;struct block*next;}block_t;
 static block_t*heap=(block_t*)HEAP_START;
 void kmalloc_init(){heap->size=HEAP_SIZE-sizeof(block_t);heap->free=1;heap->magic=MAGIC;heap->next=0;}
-void*kmalloc(uint32_t size){
+void*kmalloc(uint64_t size){
     block_t*cur=heap;
     while(cur){
         if(cur->free&&cur->magic==MAGIC&&cur->size>=size){

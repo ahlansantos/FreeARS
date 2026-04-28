@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include "../graphics/fb.h"
-typedef struct{uint32_t edi,esi,ebp,esp,ebx,edx,ecx,eax;}regs_t;
+typedef struct{uint64_t r15,r14,r13,r12,r11,r10,r9,r8,rbp,rdi,rsi,rdx,rcx,rbx,rax;}regs_t;
 
 void exception_handler(regs_t*r){
-    uint32_t*st=(uint32_t*)(r+1);uint32_t num=st[0];
+    uint64_t*st=(uint64_t*)(r+1);uint64_t num=st[0];
     if(!fb.available){
         volatile unsigned short*v=(unsigned short*)0xB8000;
         for(int i=0;i<80*25;i++)v[i]=0x4F20;

@@ -3,7 +3,7 @@
 > *"I'm doing a (free) operating system (just a hobby, won't be big and professional like linux)"*  
 > — inspired by Linus Torvalds, 1991
 
-FreeARS is a hobby x86_64 kernel written from scratch. Now with UEFI support and 64-bit mode, aiming to run on modern hardware.
+FreeARS is a hobby x86_64 kernel written from scratch. Now with 64-bit mode and Multiboot2 support, aiming to run on modern hardware.
 
 **Current version:** 0.02  
 **Branch:** `64bit` (active development)
@@ -12,32 +12,35 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with UEFI support and
 
 ## Screenshots
 
-*Coming soon, once the framebuffer works on real hardware!*
+### fastfetch - First successful 64-bit boot!
+![Fastfetch on FreeARS 64-bit](pictures/freears_64bit.png)
+
+*18:40 (6:40 PM) - 28/04/26 — IT BOOTED!!! WORKED ON 64 BIT MODE (QEMU) AFTER A COUPLE HOURS OF BUGS!*
 
 ---
 
 ## What's new in 0.02
 
 - **x86_64 (64-bit)** protected mode
-- **UEFI boot** via Multiboot2 (GOP framebuffer)
+- **Multiboot2** support
 - 4-level paging (PML4)
 - Rewritten from 32-bit codebase
-- Targeting modern GPUs (GOP instead of VESA VBE)
-- Cross-compiler: `x86_64-elf-gcc`
+- Targeting modern GPUs (GOP framebuffer)
+- All commands ported from 0.01
 
 ---
 
 ## Features
 
-- Multiboot2 (GRUB) with UEFI support
+- Multiboot2 (GRUB)
 - 64-bit long mode
-- GOP framebuffer with bitmap font
+- GOP framebuffer (800x600x32) with bitmap font
 - Graphical shell with scroll
-- Commands: help, clear, uname, echo, sleep, memtest, pagetest, crash, ticks, fastfetch, arpm
-- Dynamic memory allocator (kmalloc/kfree)
+- Commands: `help`, `clear`, `uname`, `echo`, `sleep`, `memtest`, `pagetest`, `crash`, `ticks`, `fastfetch`, `arpm`
+- Dynamic memory allocator (`kmalloc`/`kfree`)
 - 4-level paging
 - IDT with graphical exception handler
-- APIC/8259 + Timer (100 Hz)
+- PIC 8259 + PIT timer (100 Hz)
 - PS/2 Keyboard polling with Shift/Caps Lock
 - Custom ASCII art boot screen
 
@@ -91,11 +94,10 @@ Or use [Ventoy](https://ventoy.net). Requires **UEFI boot** (no Legacy BIOS).
 | Version | Branch | Description |
 |---------|--------|-------------|
 | 0.01 | `32bit` | First release. 32-bit, VESA, Legacy BIOS |
-| 0.02 | `64bit` | Current. 64-bit, UEFI, GOP |
+| 0.02 | `64bit` | Current. 64-bit, Multiboot2, GOP |
 
 ---
 
 ## License
 
 MIT
-```
