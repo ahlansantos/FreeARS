@@ -47,18 +47,6 @@ FreeARS is a hobby x86 kernel written from scratch. It boots, has a graphical sh
 
 ---
 
-## Building
-
-You'll need an i686-elf cross-compiler, nasm, and grub-mkrescue.
-
-```bash
-$ make          # builds freeARS.iso
-$ make run      # runs in QEMU
-$ make clean    # cleans up
-```
-
----
-
 ## Running on real hardware
 
 ```bash
