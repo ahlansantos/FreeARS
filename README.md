@@ -12,7 +12,7 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with UEFI support and
 
 ## Screenshots
 
-*Coming soon — once the framebuffer works on real hardware!*
+*Coming soon, once the framebuffer works on real hardware!*
 
 ---
 
