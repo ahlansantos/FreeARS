@@ -19,7 +19,7 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with 64-bit mode and 
 
 ---
 
-## What's new in 0.02
+## Things added in 64 bit branch 0.02
 
 - **x86_64 (64-bit)** protected mode
 - **Multiboot2** support
@@ -86,18 +86,3 @@ Or use [Ventoy](https://ventoy.net). Requires **UEFI boot** (no Legacy BIOS).
 | `fastfetch` | System info |
 | `arpm list` | List packages |
 | `arpm -ci <pkg>` | Install package |
-
----
-
-## History
-
-| Version | Branch | Description |
-|---------|--------|-------------|
-| 0.01 | `32bit` | First release. 32-bit, VESA, Legacy BIOS |
-| 0.02 | `64bit` | Current. 64-bit, Multiboot2, GOP |
-
----
-
-## License
-
-MIT
