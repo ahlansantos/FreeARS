@@ -189,7 +189,8 @@ void kernel_main(uint64_t mbi, uint64_t magic){
     if(!fb.available){
         uint32_t ta[]={0xFD000000,0xE0000000,0xC0000000,0xD0000000,0x90000000,0x80000000};
         for(int i=0;i<6;i++){
-            fb.address=(uint32_t*)ta[i];fb.width=800;fb.height=600;fb.pitch=3200;fb.bpp=32;
+            fb.address=(uint32_t*)ta[i];
+            fb.width=1920;fb.height=1080;fb.pitch=7680;fb.bpp=32;
             volatile uint32_t*t=fb.address;uint32_t bk=*t;*t=0x00FF0000;
             if(*t==0x00FF0000){*t=bk;fb.available=1;break;}
         }

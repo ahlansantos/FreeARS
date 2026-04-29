@@ -13,8 +13,8 @@ mb2_header_start:
     dw 5                   ; type = framebuffer
     dw 0                   ; flags (0 = optional, don't crash if unsupported)
     dd 20                  ; size
-    dd 800                 ; width
-    dd 600                 ; height
+    dd 1920                ; width
+    dd 1080                ; height
     dd 32                  ; depth
 
     ; END TAG
