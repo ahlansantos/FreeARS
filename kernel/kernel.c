@@ -1,4 +1,5 @@
 #include "../graphics/fb.h"
+#include "../fs/fs.h"
 #include "../mm/kmalloc.h"
 #include "../mm/paging.h"
 #include "../sys/idt.h"
@@ -74,6 +75,10 @@ void cmd_help(){
     gfx_println("  crash             test exception handler");
     gfx_println("  ticks             show system ticks");
     gfx_println("  fastfetch         system info display");
+    gfx_println("  mkfile <n> <c>    create file");
+    gfx_println("  cat <file>        show file content");
+    gfx_println("  ls                list files");
+    gfx_println("  rm <file>         remove file");
     gfx_println("  arpm list         list packages");
     gfx_println("  arpm -ci <pkg>    install a package");
     gfx_set_color(c_rosa,gfx_bg);gfx_println("");gfx_println("  Shift/Caps Lock supported!");gfx_println("");
@@ -124,12 +129,47 @@ void cmd_fastfetch(){
     gfx_set_color(w,gfx_bg);gfx_print("  Uptime:   ");gfx_set_color(g,gfx_bg);
     if(h){gfx_print_int(h);gfx_print("h ");}if(m){gfx_print_int(m);gfx_print("m ");}gfx_print_int(s);gfx_println("s");
     gfx_set_color(w,gfx_bg);gfx_print("  Memory:   ");gfx_set_color(g,gfx_bg);gfx_println("256 MB");
+    gfx_set_color(w,gfx_bg);gfx_print("  RAM Disk: ");gfx_set_color(g,gfx_bg);
+    gfx_print_int(fs_ls());gfx_println(" files");
     gfx_set_color(w,gfx_bg);gfx_print("  CPU:      ");gfx_set_color(g,gfx_bg);gfx_println("x86_64 Compatible");
     gfx_set_color(w,gfx_bg);gfx_print("  Display:  ");gfx_set_color(g,gfx_bg);gfx_print_int(fb.width);gfx_print("x");gfx_print_int(fb.height);gfx_println(" VESA");
     gfx_set_color(w,gfx_bg);gfx_print("  Input:    ");gfx_set_color(g,gfx_bg);gfx_println("PS/2 Keyboard (polling)");
     gfx_println("");
     uint32_t bc[]={r,y,g,cy,b};for(int row=0;row<5;row++){gfx_print("  ");gfx_set_color(bc[row],gfx_bg);for(int col=0;col<30;col++)gfx_print("#");gfx_println("");}
     gfx_println("");gfx_set_color(gr,gfx_bg);gfx_println("  Type 'help' for available commands.");gfx_println("");
+}
+
+void cmd_mkfile(const char *args) {
+    char name[32], content[256]; int i=0,j=0;
+    while(args[i]==' ')i++;
+    while(args[i]&&args[i]!=' '&&j<31)name[j++]=args[i++];
+    name[j]='\0';
+    if(name[0]=='\0'){gfx_set_color(0xFF0000,gfx_bg);gfx_println("  usage: mkfile <name> <content>");return;}
+    while(args[i]==' ')i++;
+    j=0;while(args[i]&&j<255)content[j++]=args[i++];
+    content[j]='\0';
+    if(fs_mkfile(name,content)==0){gfx_set_color(0x00FF00,gfx_bg);gfx_print("  Created: ");gfx_println(name);}
+    else{gfx_set_color(0xFF0000,gfx_bg);gfx_println("  FS full!");}
+}
+
+void cmd_cat(const char *name) {
+    if(name[0]=='\0'){gfx_set_color(0xFF0000,gfx_bg);gfx_println("  usage: cat <file>");return;}
+    int idx=fs_get_index(name);
+    if(idx>=0){gfx_set_color(0x00FF00,gfx_bg);gfx_print("  ");gfx_println(fs_get_content(idx));}
+    else{gfx_set_color(0xFF0000,gfx_bg);gfx_print("  not found: ");gfx_println(name);}
+}
+
+void cmd_ls() {
+    int count=fs_ls();
+    if(count==0){gfx_set_color(0x888888,gfx_bg);gfx_println("  (empty)");return;}
+    gfx_set_color(0x00FFFF,gfx_bg);gfx_println("  files:");
+    for(int i=0;i<32;i++){char*n=fs_get_name(i);if(n){gfx_set_color(0x00FF00,gfx_bg);gfx_print("    - ");gfx_set_color(0xFFFFFF,gfx_bg);gfx_println(n);}}
+}
+
+void cmd_rm(const char *name) {
+    if(name[0]=='\0'){gfx_set_color(0xFF0000,gfx_bg);gfx_println("  usage: rm <file>");return;}
+    if(fs_rm(name)==0){gfx_set_color(0x00FF00,gfx_bg);gfx_print("  Removed: ");gfx_println(name);}
+    else{gfx_set_color(0xFF0000,gfx_bg);gfx_print("  not found: ");gfx_println(name);}
 }
 
 void gfx_shell(){
@@ -148,6 +188,10 @@ void gfx_shell(){
         else if(!strcmp(in,"ticks"))cmd_ticks();
         else if(!strcmp(in,"fastfetch"))cmd_fastfetch();
         else if(startswith(in,"arpm"))cmd_arpm(strlen(in)>5?in+5:"");
+        else if(startswith(in,"mkfile")) cmd_mkfile(strlen(in)>7?in+7:"");
+        else if(startswith(in,"cat")) cmd_cat(strlen(in)>4?in+4:"");
+        else if(!strcmp(in,"ls")) cmd_ls();
+        else if(startswith(in,"rm")) cmd_rm(strlen(in)>3?in+3:"");  
         else if(in[0]){gfx_set_color(0xFF0000,gfx_bg);gfx_print("  not found: ");gfx_println(in);}
     }
 }
@@ -157,7 +201,8 @@ void kernel_main(uint64_t magic, uint64_t mbi){
     pic_remap(0x20,0x28);timer_init(100);
     outb(0x21,inb(0x21)|2);__asm__ volatile("sti");
     fb_init(magic,mbi);
-    
+    fs_init();
+
     // simple fallback if graphic init gop wdont work
     if (!fb.available) {
         fb.address = (uint32_t *)0xFD000000;
