@@ -1,6 +1,6 @@
 #include "kmalloc.h"
 #define HEAP_START 0x200000
-#define HEAP_SIZE 0x100000
+#define HEAP_SIZE 0x40000000
 #define MAGIC 0xAB
 typedef struct block{uint64_t size;uint8_t free,magic;struct block*next;}block_t;
 static block_t*heap=(block_t*)HEAP_START;
