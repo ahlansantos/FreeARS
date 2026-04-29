@@ -12,8 +12,11 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with 64-bit mode and 
 
 ## Screenshots
 
-### fastfetch - First successful 64-bit boot!
+### fastfetch - First successful 64-bit boot (QEMU)!
 ![Fastfetch on FreeARS 64-bit](pictures/freears_64bit.png)
+
+### fastfetch + filesystem test (RAMDISK) - Success!!
+![Fastfetch + Fs](pictures/freears_64bit_fastfetch.png)
 
 *18:40 (6:40 PM) - 28/04/26 — IT BOOTED!!! WORKED ON 64 BIT MODE (QEMU) AFTER A COUPLE HOURS OF BUGS!*
 
