@@ -3,9 +3,9 @@
 > *"I'm doing a (free) operating system (just a hobby, won't be big and professional like linux)"*  
 > — inspired by Linus Torvalds, 1991
 
-FreeARS is a hobby x86_64 kernel written from scratch. Now with 64-bit mode and Multiboot2 support, aiming to run on modern hardware.
+FreeARS is a hobby x86_64 kernel written from scratch. Now with 64-bit mode, Multiboot2, RAM Disk filesystem, and universal framebuffer detection.
 
-**Current version:** 0.02  
+**Current version:** 0.03  
 **Branch:** `64bit` (active development)
 
 ---
@@ -14,21 +14,21 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with 64-bit mode and 
 
 *18:40 (6:40 PM) - 28/04/26 — IT BOOTED!!! WORKED ON 64 BIT MODE (QEMU) AFTER A COUPLE HOURS OF BUGS!*
 
-*10:30 - 30/04/26 - IT BOOTED ON A BAREMETAL LIKE VM!!! Another win!!*
+*10:30 - 30/04/26 - IT BOOTED ON A BAREMETAL LIKE VM (VirtualBox)!!! Another win!!*
 
-### Boot on BM-VM + fastfetch + filesystem test (RAMDISK) - Success!!
+### VirtualBox Boot + fastfetch + RAM Disk Filesystem
 ![VMBoot + Fastfetch + Fs](pictures/FreeARS_64bit_ff.png)
 
 ---
 
-## Things added in 64 bit branch 0.02
+## What's new in 0.03
 
-- **x86_64 (64-bit)** protected mode
-- **Multiboot2** support
-- 4-level paging (PML4)
-- Rewritten from 32-bit codebase
-- Targeting modern GPUs (GOP framebuffer)
-- All commands ported from 0.01
+- **Universal framebuffer detection** — tests 6 common addresses
+- **Real CPU name** via CPUID (shows "AMD Ryzen 5 5500" etc.)
+- **RAM Disk filesystem** — `mkfile`, `cat`, `ls`, `rm` commands
+- **Multiboot2 info parsing** — reads tags from GRUB
+- Works on **QEMU + VirtualBox** (BIOS/Legacy mode)
+- Improved `fastfetch` with real CPU detection
 
 ---
 
@@ -36,12 +36,15 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with 64-bit mode and 
 
 - Multiboot2 (GRUB)
 - 64-bit long mode
-- GOP framebuffer (800x600x32) with bitmap font
+- VESA framebuffer (800x600x32) with bitmap font
+- Universal framebuffer address detection (6 fallback addresses)
 - Graphical shell with scroll
+- Real CPU name detection via CPUID
+- RAM Disk filesystem (`mkfile`, `cat`, `ls`, `rm`)
 - Commands: `help`, `clear`, `uname`, `echo`, `sleep`, `memtest`, `pagetest`, `crash`, `ticks`, `fastfetch`, `arpm`
-- Dynamic memory allocator (`kmalloc`/`kfree`)
-- 4-level paging
-- IDT with graphical exception handler
+- Dynamic memory allocator (`kmalloc`/`kfree`) — 1 GB heap
+- 4-level paging (PML4) — maps 4 GB
+- IDT with graphical exception handler (all 32 exceptions)
 - PIC 8259 + PIT timer (100 Hz)
 - PS/2 Keyboard polling with Shift/Caps Lock
 - Custom ASCII art boot screen
@@ -50,25 +53,13 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with 64-bit mode and 
 
 ## What it lacks
 
-- Filesystem
 - User mode (ring 3)
-- Multitasking
-- Mouse
+- Multitasking / Scheduler
+- Mouse support
 - Networking
 - GPU drivers
+- Real filesystem (FAT32/ext2)
 - Any practical use
-
----
-
-## Hardware
-
-Tested on QEMU. Should work on UEFI hardware with GOP.
-
-```bash
-dd if=freeARS.iso of=/dev/sdX bs=1M status=progress
-```
-
-Or use [Ventoy](https://ventoy.net). Requires **UEFI boot** (no Legacy BIOS).
 
 ---
 
@@ -76,15 +67,29 @@ Or use [Ventoy](https://ventoy.net). Requires **UEFI boot** (no Legacy BIOS).
 
 | Command | Description |
 |---------|-------------|
-| `help` | Show commands |
+| `help` | Show all commands |
 | `clear` | Clear screen |
 | `uname` | System info |
 | `echo <text>` | Print text |
-| `sleep <ms>` | Sleep |
-| `memtest` | Test heap |
-| `pagetest` | Test paging |
+| `sleep <ms>` | Sleep milliseconds |
+| `memtest` | Test heap allocator |
+| `pagetest` | Test virtual memory |
 | `crash` | Test exception handler |
-| `ticks` | Timer ticks |
-| `fastfetch` | System info |
+| `ticks` | Show timer ticks |
+| `fastfetch` | System info (real CPU name!) |
+| `mkfile <n> <c>` | Create file on RAM disk |
+| `cat <file>` | Show file content |
+| `ls` | List files |
+| `rm <file>` | Remove file |
 | `arpm list` | List packages |
 | `arpm -ci <pkg>` | Install package |
+
+---
+
+## History
+
+| Version | Description |
+|---------|-------------|
+| 0.01 | First release. 32-bit, VESA, Legacy BIOS |
+| 0.02 | 64-bit, Multiboot2, framebuffer, shell |
+| 0.03 | Universal FB detection, CPUID, RAM Disk FS, VirtualBox support |
