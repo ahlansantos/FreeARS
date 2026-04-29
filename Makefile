@@ -3,7 +3,7 @@ AS = nasm
 CFLAGS = -ffreestanding -O2 -Wall -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -nostartfiles -nodefaultlibs
 
 ASM_OBJS = kernel/boot.o kernel/isr.o
-C_OBJS = kernel/kernel.o mm/kmalloc.o mm/paging.o sys/idt.o sys/exception.o drivers/pic.o drivers/timer.o drivers/io.o graphics/fb.o graphics/font.o
+C_OBJS = kernel/kernel.o mm/kmalloc.o mm/paging.o sys/idt.o sys/exception.o drivers/pic.o drivers/timer.o drivers/io.o graphics/fb.o graphics/font.o fs/fs.o
 
 all: freeARS.iso
 
