@@ -8,6 +8,7 @@
 #include "../drivers/timer.h"
 #include <stdint.h>
 
+static uint64_t mbi_saved = 0;
 static uint32_t gfx_x=8,gfx_y=8,gfx_fg=0xFFFFFF,gfx_bg=0x000000;
 
 void gfx_scroll(){
@@ -35,7 +36,6 @@ void gfx_println(const char*s){gfx_print(s);gfx_putchar('\n');}
 void gfx_set_color(uint32_t f,uint32_t b){gfx_fg=f;gfx_bg=b;}
 void gfx_clear(){fb_clear(gfx_bg);gfx_x=8;gfx_y=8;}
 void gfx_print_int(uint32_t n){char b[11];int i=10;b[i--]=0;do{b[i--]='0'+(n%10);n/=10;}while(n);gfx_print(&b[i+1]);}
-void gfx_print_hex(uint32_t n){char h[]="0123456789ABCDEF";gfx_print("0x");for(int i=28;i>=0;i-=4)gfx_putchar(h[(n>>i)&0xF]);}
 
 void gfx_readline(char*buf,int max){
     static const char lo[]={0,0,'1','2','3','4','5','6','7','8','9','0','-','=','\b','\t','q','w','e','r','t','y','u','i','o','p','[',']','\n',0,'a','s','d','f','g','h','j','k','l',';','\'','`',0,'\\','z','x','c','v','b','n','m',',','.','/',0,'*',0,' '};
@@ -110,8 +110,6 @@ void cmd_arpm(const char*a){
 void cmd_fastfetch(){
     gfx_clear();
     uint32_t cy=0x88AACC,w=0xDDDDDD,g=0x88CC88,gr=0xAAAAAA,r=0xCC88AA,y=0xCCCC88,b=0x8888CC;
-    
-    // Logo
     gfx_set_color(cy,gfx_bg);
     gfx_println("   ______                        _____   _____ ");
     gfx_println("  |  ____|                 /\\   |  __ \\ / ____|");
@@ -122,136 +120,40 @@ void cmd_fastfetch(){
     gfx_set_color(cy,gfx_bg);
     gfx_println("  |_|  |_|  \\___|\\___| /_/    \\_\\_|  \\_\\_____/ ");
     gfx_println("");
-    
-    // Usuário
-    gfx_set_color(w,gfx_bg);gfx_print("  ");
-    gfx_set_color(r,gfx_bg);gfx_println("user@FreeARS");
+    gfx_set_color(w,gfx_bg);gfx_print("  ");gfx_set_color(r,gfx_bg);gfx_println("user@FreeARS");
     gfx_set_color(gr,gfx_bg);gfx_println("  -----------");
-    
-    // OS
-    gfx_set_color(w,gfx_bg);gfx_print("  OS:       ");
-    gfx_set_color(g,gfx_bg);gfx_println("FreeARS 0.03");
-    
-    // Kernel
-    gfx_set_color(w,gfx_bg);gfx_print("  Kernel:   ");
-    gfx_set_color(g,gfx_bg);gfx_println("x86_64 64-bit");
-    
-    // Shell
-    gfx_set_color(w,gfx_bg);gfx_print("  Shell:    ");
-    gfx_set_color(g,gfx_bg);gfx_println("fsh 0.3");
-    
-    // Uptime
-    uint32_t t=timer_get_ticks()/100;
-    uint32_t h=t/3600,m=(t%3600)/60,s=t%60;
-    gfx_set_color(w,gfx_bg);gfx_print("  Uptime:   ");
-    gfx_set_color(g,gfx_bg);
-    if(h){gfx_print_int(h);gfx_print("h ");}
-    if(m){gfx_print_int(m);gfx_print("m ");}
-    gfx_print_int(s);gfx_println("s");
-    
-    // RAM total (do GRUB Multiboot2)
-    uint32_t total_ram = 256; // padrão
-    uint8_t *tags = (uint8_t *)0x10000; // MBI aproximado
-    // Procura tag de memória (tipo 6)
-    uint32_t *tag = (uint32_t *)(tags + 8);
-    while (1) {
-        uint32_t type = tag[0];
-        uint32_t size = tag[1];
-        if (type == 0) break;
-        if (type == 6) {
-            total_ram = (uint32_t)(tag[2] / 1024); // KB -> MB
-        }
-        tag = (uint32_t *)((uint8_t *)tag + ((size + 7) / 8) * 8);
-    }
-    gfx_set_color(w,gfx_bg);gfx_print("  RAM:      ");
-    gfx_set_color(g,gfx_bg);
-    gfx_print_int(total_ram);gfx_println(" MB");
-    
-    gfx_set_color(w,gfx_bg);gfx_print("  RAM Disk: ");
-    gfx_set_color(g,gfx_bg);
-    gfx_print_int(fs_ls());gfx_println(" files");
-    
-    char cpu_name[49] = {0};
-    uint32_t eax, ebx, ecx, edx;
-    __asm__ volatile("cpuid" : "=a"(eax) : "a"(0x80000002));
-    __asm__ volatile("cpuid" : "=a"(eax),"=b"(ebx),"=c"(ecx),"=d"(edx) : "a"(0x80000002));
-    *(uint32_t *)(cpu_name + 0) = eax;
-    *(uint32_t *)(cpu_name + 4) = ebx;
-    *(uint32_t *)(cpu_name + 8) = ecx;
-    *(uint32_t *)(cpu_name + 12) = edx;
-    __asm__ volatile("cpuid" : "=a"(eax),"=b"(ebx),"=c"(ecx),"=d"(edx) : "a"(0x80000003));
-    *(uint32_t *)(cpu_name + 16) = eax;
-    *(uint32_t *)(cpu_name + 20) = ebx;
-    *(uint32_t *)(cpu_name + 24) = ecx;
-    *(uint32_t *)(cpu_name + 28) = edx;
-    __asm__ volatile("cpuid" : "=a"(eax),"=b"(ebx),"=c"(ecx),"=d"(edx) : "a"(0x80000004));
-    *(uint32_t *)(cpu_name + 32) = eax;
-    *(uint32_t *)(cpu_name + 36) = ebx;
-    *(uint32_t *)(cpu_name + 40) = ecx;
-    *(uint32_t *)(cpu_name + 44) = edx;
-    cpu_name[48] = '\0';
-    int start = 0;
-    while (cpu_name[start] == ' ') start++;
-    gfx_set_color(w,gfx_bg);gfx_print("  CPU:      ");
-    gfx_set_color(g,gfx_bg);
-    gfx_println(&cpu_name[start]);
-
-    gfx_set_color(w,gfx_bg);gfx_print("  GPU:      ");
-    gfx_set_color(g,gfx_bg);gfx_println("VESA/VBE Compatible");
-    gfx_set_color(w,gfx_bg);gfx_print("  Display:  ");
-    gfx_set_color(g,gfx_bg);
-
-    gfx_print_int(fb.width);gfx_print("x");gfx_print_int(fb.height);gfx_println(" VESA");
-    gfx_set_color(w,gfx_bg);gfx_print("  Input:    ");
-    gfx_set_color(g,gfx_bg);gfx_println("PS/2 Keyboard (polling)");
+    gfx_set_color(w,gfx_bg);gfx_print("  OS:       ");gfx_set_color(g,gfx_bg);gfx_println("FreeARS 0.03");
+    gfx_set_color(w,gfx_bg);gfx_print("  Kernel:   ");gfx_set_color(g,gfx_bg);gfx_println("x86_64 64-bit");
+    gfx_set_color(w,gfx_bg);gfx_print("  Shell:    ");gfx_set_color(g,gfx_bg);gfx_println("fsh 0.3");
+    uint32_t t=timer_get_ticks()/100;uint32_t h=t/3600,m=(t%3600)/60,s=t%60;
+    gfx_set_color(w,gfx_bg);gfx_print("  Uptime:   ");gfx_set_color(g,gfx_bg);
+    if(h){gfx_print_int(h);gfx_print("h ");}if(m){gfx_print_int(m);gfx_print("m ");}gfx_print_int(s);gfx_println("s");
+    gfx_set_color(w,gfx_bg);gfx_print("  RAM:      ");gfx_set_color(g,gfx_bg);gfx_println("1024 MB (1 GB)");
+    gfx_set_color(w,gfx_bg);gfx_print("  RAM Disk: ");gfx_set_color(g,gfx_bg);gfx_print_int(fs_ls());gfx_println(" files");
+    char cpu_name[49]={0};uint32_t eax,ebx,ecx,edx;
+    __asm__ volatile("cpuid":"=a"(eax),"=b"(ebx),"=c"(ecx),"=d"(edx):"a"(0x80000002));
+    *(uint32_t*)(cpu_name+0)=eax;*(uint32_t*)(cpu_name+4)=ebx;
+    *(uint32_t*)(cpu_name+8)=ecx;*(uint32_t*)(cpu_name+12)=edx;
+    __asm__ volatile("cpuid":"=a"(eax),"=b"(ebx),"=c"(ecx),"=d"(edx):"a"(0x80000003));
+    *(uint32_t*)(cpu_name+16)=eax;*(uint32_t*)(cpu_name+20)=ebx;
+    *(uint32_t*)(cpu_name+24)=ecx;*(uint32_t*)(cpu_name+28)=edx;
+    __asm__ volatile("cpuid":"=a"(eax),"=b"(ebx),"=c"(ecx),"=d"(edx):"a"(0x80000004));
+    *(uint32_t*)(cpu_name+32)=eax;*(uint32_t*)(cpu_name+36)=ebx;
+    *(uint32_t*)(cpu_name+40)=ecx;*(uint32_t*)(cpu_name+44)=edx;
+    cpu_name[48]='\0';int start=0;while(cpu_name[start]==' ')start++;
+    gfx_set_color(w,gfx_bg);gfx_print("  CPU:      ");gfx_set_color(g,gfx_bg);gfx_println(&cpu_name[start]);
+    gfx_set_color(w,gfx_bg);gfx_print("  GPU:      ");gfx_set_color(g,gfx_bg);gfx_println("VESA/VBE Compatible");
+    gfx_set_color(w,gfx_bg);gfx_print("  Display:  ");gfx_set_color(g,gfx_bg);gfx_print_int(fb.width);gfx_print("x");gfx_print_int(fb.height);gfx_println(" VESA");
+    gfx_set_color(w,gfx_bg);gfx_print("  Input:    ");gfx_set_color(g,gfx_bg);gfx_println("PS/2 Keyboard (polling)");
     gfx_println("");
-    
-    uint32_t bc[]={r,y,g,cy,b};
-    for(int row=0;row<5;row++){
-        gfx_print("  ");
-        gfx_set_color(bc[row],gfx_bg);
-        for(int col=0;col<30;col++)gfx_print("#");
-        gfx_println("");
-    }
-    
-    gfx_println("");
-    gfx_set_color(gr,gfx_bg);
-    gfx_println("  Type 'help' for available commands.");
-    gfx_println("");
+    uint32_t bc[]={r,y,g,cy,b};for(int row=0;row<5;row++){gfx_print("  ");gfx_set_color(bc[row],gfx_bg);for(int col=0;col<30;col++)gfx_print("#");gfx_println("");}
+    gfx_println("");gfx_set_color(gr,gfx_bg);gfx_println("  Type 'help' for available commands.");gfx_println("");
 }
 
-void cmd_mkfile(const char *args){
-    char name[32],content[256];int i=0,j=0;
-    while(args[i]==' ')i++;
-    while(args[i]&&args[i]!=' '&&j<31)name[j++]=args[i++];
-    name[j]='\0';
-    if(name[0]=='\0'){gfx_set_color(0xFF0000,gfx_bg);gfx_println("  usage: mkfile <name> <content>");return;}
-    while(args[i]==' ')i++;
-    j=0;while(args[i]&&j<255)content[j++]=args[i++];
-    content[j]='\0';
-    if(fs_mkfile(name,content)==0){gfx_set_color(0x00FF00,gfx_bg);gfx_print("  Created: ");gfx_println(name);}
-    else{gfx_set_color(0xFF0000,gfx_bg);gfx_println("  FS full!");}
-}
-
-void cmd_cat(const char *name){
-    if(name[0]=='\0'){gfx_set_color(0xFF0000,gfx_bg);gfx_println("  usage: cat <file>");return;}
-    int idx=fs_get_index(name);
-    if(idx>=0){gfx_set_color(0x00FF00,gfx_bg);gfx_print("  ");gfx_println(fs_get_content(idx));}
-    else{gfx_set_color(0xFF0000,gfx_bg);gfx_print("  not found: ");gfx_println(name);}
-}
-
-void cmd_ls(){
-    int count=fs_ls();
-    if(count==0){gfx_set_color(0x888888,gfx_bg);gfx_println("  (empty)");return;}
-    gfx_set_color(0x00FFFF,gfx_bg);gfx_println("  files:");
-    for(int i=0;i<32;i++){char*n=fs_get_name(i);if(n){gfx_set_color(0x00FF00,gfx_bg);gfx_print("    - ");gfx_set_color(0xFFFFFF,gfx_bg);gfx_println(n);}}
-}
-
-void cmd_rm(const char *name){
-    if(name[0]=='\0'){gfx_set_color(0xFF0000,gfx_bg);gfx_println("  usage: rm <file>");return;}
-    if(fs_rm(name)==0){gfx_set_color(0x00FF00,gfx_bg);gfx_print("  Removed: ");gfx_println(name);}
-    else{gfx_set_color(0xFF0000,gfx_bg);gfx_print("  not found: ");gfx_println(name);}
-}
+void cmd_mkfile(const char*args){char name[32],content[256];int i=0,j=0;while(args[i]==' ')i++;while(args[i]&&args[i]!=' '&&j<31)name[j++]=args[i++];name[j]='\0';if(name[0]=='\0'){gfx_set_color(0xFF0000,gfx_bg);gfx_println("  usage: mkfile <name> <content>");return;}while(args[i]==' ')i++;j=0;while(args[i]&&j<255)content[j++]=args[i++];content[j]='\0';if(fs_mkfile(name,content)==0){gfx_set_color(0x00FF00,gfx_bg);gfx_print("  Created: ");gfx_println(name);}else{gfx_set_color(0xFF0000,gfx_bg);gfx_println("  FS full!");}}
+void cmd_cat(const char*name){if(name[0]=='\0'){gfx_set_color(0xFF0000,gfx_bg);gfx_println("  usage: cat <file>");return;}int idx=fs_get_index(name);if(idx>=0){gfx_set_color(0x00FF00,gfx_bg);gfx_print("  ");gfx_println(fs_get_content(idx));}else{gfx_set_color(0xFF0000,gfx_bg);gfx_print("  not found: ");gfx_println(name);}}
+void cmd_ls(){int count=fs_ls();if(count==0){gfx_set_color(0x888888,gfx_bg);gfx_println("  (empty)");return;}gfx_set_color(0x00FFFF,gfx_bg);gfx_println("  files:");for(int i=0;i<32;i++){char*n=fs_get_name(i);if(n){gfx_set_color(0x00FF00,gfx_bg);gfx_print("    - ");gfx_set_color(0xFFFFFF,gfx_bg);gfx_println(n);}}}
+void cmd_rm(const char*name){if(name[0]=='\0'){gfx_set_color(0xFF0000,gfx_bg);gfx_println("  usage: rm <file>");return;}if(fs_rm(name)==0){gfx_set_color(0x00FF00,gfx_bg);gfx_print("  Removed: ");gfx_println(name);}else{gfx_set_color(0xFF0000,gfx_bg);gfx_print("  not found: ");gfx_println(name);}}
 
 void gfx_shell(){
     char in[256];
@@ -277,7 +179,8 @@ void gfx_shell(){
     }
 }
 
-void kernel_main(uint64_t magic, uint64_t mbi){
+void kernel_main(uint64_t mbi, uint64_t magic){
+    mbi_saved = mbi & 0xFFFFFFFF;
     paging_init();kmalloc_init();idt_init();
     pic_remap(0x20,0x28);timer_init(100);
     outb(0x21,inb(0x21)|2);__asm__ volatile("sti");
@@ -306,7 +209,8 @@ void kernel_main(uint64_t magic, uint64_t mbi){
         gfx_set_color(0x888888,gfx_bg);
         gfx_println("  FreeARS 0.03 -- Another Random System");
         gfx_println("  type 'help' for available commands.");
-        gfx_println("");gfx_shell();
+        gfx_println("");
+        gfx_shell();
     }else{
         volatile unsigned short*v=(unsigned short*)0xB8000;
         for(int i=0;i<80*25;i++)v[i]=0x0720;
