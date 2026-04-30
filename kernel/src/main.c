@@ -245,7 +245,6 @@ static void cmd_memtest(void) {
         println("FAILED - No free pages");
     }
     
-    // Now test kmalloc with a small allocation
     fg = 0xDDDDDD;
     println("\n  === Heap Test ===");
     
@@ -259,7 +258,6 @@ static void cmd_memtest(void) {
         print_hex((uint32_t)(uint64_t)heap_test);
         println("");
         
-        // Try to use the memory
         volatile uint64_t* test_ptr = (uint64_t*)heap_test;
         *test_ptr = 0x123456789ABCDEF0ULL;
         
@@ -404,7 +402,6 @@ void kmain(void){
     pw=fbi->pitch/4;
 
     if(memmap_request.response != NULL){
-        // Calculate total RAM
         for(uint64_t i=0;i<memmap_request.response->entry_count;i++){
             struct limine_memmap_entry *e=memmap_request.response->entries[i];
             if(e->type==LIMINE_MEMMAP_USABLE) total_ram+=e->length;
@@ -412,7 +409,7 @@ void kmain(void){
         
         serial_init();
         serial_print("Initializing PMM...\n");
-        pmm_init(memmap_request.response);  // UNCOMMENT THIS LINE
+        pmm_init(memmap_request.response); 
         serial_print("PMM initialized\n");
     }
 
