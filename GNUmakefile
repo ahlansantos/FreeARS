@@ -7,7 +7,7 @@ ARCH := x86_64
 # Default user QEMU flags. These are appended to the QEMU command calls.
 QEMUFLAGS := -m 32G -enable-kvm -serial stdio
 
-override IMAGE_NAME := FreeARS_0.04-$(ARCH)
+override IMAGE_NAME := FreeARS_0.05-$(ARCH)
 
 # Toolchain for building the 'limine' executable for the host.
 HOST_CC := cc
