@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <limine.h>
+#include "mm/pmm.h"
+#include "mm/heap.h"
 #include "graphics/font.h"
 #include "drivers/keyboard.h"
 
@@ -33,19 +35,6 @@ static uint32_t fg=0xFFFFFF, bg=0x00111122;
 static uint64_t total_ram=0;
 static uint64_t tsc_hz=0;
 static uint64_t boot_tsc=0;
-
-#define HEAP_BASE 0x1000000 
-static uint64_t heap_current = HEAP_BASE;
-
-void* kmalloc(size_t size) {
-    if (size == 0) return NULL;
-    size = (size + 7) & ~7; 
-    void* ptr = (void*)heap_current;
-    heap_current += size;
-    if (heap_current > HEAP_BASE + 0x4000000) return NULL; 
-    return ptr;
-}
-void kfree(void* ptr) { (void)ptr; }
 
 static inline void outb(uint16_t p, uint8_t v){ asm volatile("outb %0,%1"::"a"(v),"Nd"(p)); }
 static inline uint8_t inb(uint16_t p){ uint8_t v; asm volatile("inb %1,%0":"=a"(v):"Nd"(p)); return v; }
@@ -212,13 +201,81 @@ static void cmd_help(void){
 
 static void cmd_memtest(void) {
     fg = 0xDDDDDD;
-    print("  Allocating 1KB... ");
-    void* ptr = kmalloc(1024);
-    if(ptr) {
+    println("\n  === PMM Test ===");
+    
+    fg = 0x88CC88;
+    print("  Free pages available: ");
+    print_int((uint32_t)pmm_get_free_page_count());
+    println("");
+    
+    fg = 0xDDDDDD;
+    print("  Allocating 1 page directly from PMM... ");
+    
+    void* page = pmm_alloc_page();
+    if(page) {
         fg = 0x00FF00;
         println("OK");
-        print("  Address: 0x"); print_hex((uint32_t)(uint64_t)ptr);
+        print("  Address: 0x");
+        print_hex((uint32_t)(uint64_t)page);
         println("");
+        
+        print("  Writing test pattern... ");
+        volatile uint32_t* test = (uint32_t*)page;
+        *test = 0xDEADBEEF;
+        if(*test == 0xDEADBEEF) {
+            fg = 0x00FF00;
+            println("OK");
+        } else {
+            fg = 0xFF0000;
+            println("FAILED");
+        }
+        
+        print("  Freeing page... ");
+        pmm_free_page(page);
+        fg = 0x00FF00;
+        println("OK");
+        
+        fg = 0x88CC88;
+        print("  Free pages after free: ");
+        print_int((uint32_t)pmm_get_free_page_count());
+        println("");
+        
+    } else {
+        fg = 0xFF0000;
+        println("FAILED - No free pages");
+    }
+    
+    // Now test kmalloc with a small allocation
+    fg = 0xDDDDDD;
+    println("\n  === Heap Test ===");
+    
+    fg = 0x88CC88;
+    print("  Testing kmalloc(64)... ");
+    void* heap_test = kmalloc(64);
+    if(heap_test) {
+        fg = 0x00FF00;
+        println("OK");
+        print("  Heap address: 0x");
+        print_hex((uint32_t)(uint64_t)heap_test);
+        println("");
+        
+        // Try to use the memory
+        volatile uint64_t* test_ptr = (uint64_t*)heap_test;
+        *test_ptr = 0x123456789ABCDEF0ULL;
+        
+        fg = 0xDDDDDD;
+        print("  Verifying heap memory... ");
+        if(*test_ptr == 0x123456789ABCDEF0ULL) {
+            fg = 0x00FF00;
+            println("OK");
+        } else {
+            fg = 0xFF0000;
+            println("FAILED");
+        }
+        
+        kfree(heap_test);
+        fg = 0x00FF00;
+        println("  Freed successfully");
     } else {
         fg = 0xFF0000;
         println("FAILED");
@@ -316,24 +373,57 @@ void terminal_putchar(char c) {
     put(c);
 }
 
+static inline void serial_init(){
+    outb(0x3F8 + 1, 0x00);
+    outb(0x3F8 + 3, 0x80);
+    outb(0x3F8 + 0, 0x03);
+    outb(0x3F8 + 1, 0x00);
+    outb(0x3F8 + 3, 0x03);
+    outb(0x3F8 + 2, 0xC7);
+    outb(0x3F8 + 4, 0x0B);
+}
+
+static inline int serial_ready(){
+    return inb(0x3F8 + 5) & 0x20;
+}
+
+static void serial_putc(char c){
+    while(!serial_ready());
+    outb(0x3F8, c);
+}
+
+static void serial_print(const char* s){
+    for(int i=0;s[i];i++) serial_putc(s[i]);
+}
+
 void kmain(void){
     if(LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision)==false) hcf();
     if(framebuffer_request.response==NULL||framebuffer_request.response->framebuffer_count<1) hcf();
+
     fbi=framebuffer_request.response->framebuffers[0];
     pw=fbi->pitch/4;
-    if(memmap_request.response!=NULL)
+
+    if(memmap_request.response != NULL){
+        // Calculate total RAM
         for(uint64_t i=0;i<memmap_request.response->entry_count;i++){
             struct limine_memmap_entry *e=memmap_request.response->entries[i];
             if(e->type==LIMINE_MEMMAP_USABLE) total_ram+=e->length;
         }
-    
+        
+        serial_init();
+        serial_print("Initializing PMM...\n");
+        pmm_init(memmap_request.response);  // UNCOMMENT THIS LINE
+        serial_print("PMM initialized\n");
+    }
+
     tsc_calibrate();
     boot_tsc=rdtsc();
-    
+
     idt_init();
     asm volatile("sti");
-    
+
     clear();
+
     fg=0x88AACC;
     println("   ______                        _____   _____ ");
     println("  |  ____|                 /\\   |  __ \\ / ____|");
@@ -344,16 +434,24 @@ void kmain(void){
     fg=0x88AACC;
     println("  |_|  |_|  \\___|\\___| /_/    \\_\\_|  \\_\\_____/ ");
     println("");
+
     fg=0x88CC88; println("  FreeARS 0.04"); println("");
+
     fg=0xDDDDDD; print("  Framebuffer: "); fg=0x88CC88;
     print_int(fbi->width); print("x"); print_int(fbi->height); println("");
+
     fg=0xDDDDDD; print("  RAM: "); fg=0x88CC88;
     if(total_ram>=1073741824){print_int(total_ram/1073741824);println(" GB");}
     else{print_int(total_ram/1048576);println(" MB");}
+
     fg=0xDDDDDD; print("  TSC: "); fg=0x88CC88;
     print_int((uint32_t)(tsc_hz/1000000)); println(" MHz");
+
     println("");
+
     fg=0xAAAAAA; println("  Type 'help' for available commands."); println("");
+
     shell();
+
     hcf();
 }

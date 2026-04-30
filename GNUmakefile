@@ -5,7 +5,7 @@
 ARCH := x86_64
 
 # Default user QEMU flags. These are appended to the QEMU command calls.
-QEMUFLAGS := -m 2G -enable-kvm
+QEMUFLAGS := -m 2G -enable-kvm -serial stdio
 
 override IMAGE_NAME := FreeARS_0.04-$(ARCH)
 
