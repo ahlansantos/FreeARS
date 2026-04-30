@@ -50,29 +50,23 @@ static uint16_t pit_read(void){
 }
 
 static void tsc_calibrate(void){
-    /* Modo 2 (rate generator), 65535 contagens ~ 54.9ms */
+
     outb(0x43, 0x34);
     outb(0x40, 0xFF);
     outb(0x40, 0xFF);
 
-    /* Espera o primeiro reload acontecer (valor cair abaixo de 60000) */
     while(pit_read() < 60000) asm volatile("pause");
 
-    /* Agora espera um valor alto pra sincronizar no inicio do ciclo */
     while(pit_read() < 60000) asm volatile("pause");
 
-    /* Pega o valor inicial e o TSC */
     uint16_t start = pit_read();
     uint64_t tsc_start = rdtsc();
 
-    /* Espera cair exatamente 10000 contagens = ~8.38ms */
     uint16_t target = start - 10000;
     while(pit_read() > target) asm volatile("pause");
 
     uint64_t tsc_end = rdtsc();
 
-    /* 10000 contagens a 1193182 Hz = 8.381ms */
-    /* tsc_hz = ciclos / 0.008381 = ciclos * 1193182 / 10000 */
     uint64_t cycles = tsc_end - tsc_start;
     tsc_hz = cycles * 1193182ULL / 10000ULL;
 

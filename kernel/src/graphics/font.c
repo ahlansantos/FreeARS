@@ -1,4 +1,3 @@
-// src/graphics/font.c
 #include "font.h"
 
 const uint8_t font[128][16]={
