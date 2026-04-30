@@ -17,7 +17,7 @@ FreeARS is a hobby x86_64 kernel written from scratch. UEFI boot via Limine, TSC
 *31/04/26 — Bare metal on real hardware working! Posted on my tiktok. @theloneahlan*  
 *01/05/26 — PMM + heap working! Tested up to 32GB RAM.*
 
-### UEFI Boot + fastfetch + PMM + TSC Ticks!! (QEMU)
+### UEFI Boot + fastfetch + PMM + TSC Ticks!! (VirtualBox BM)
 ![UEFI Boot PMM](pictures/FreeARS-0.05-PMM.png)
 
 ---
