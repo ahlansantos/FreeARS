@@ -34,6 +34,19 @@ static uint64_t total_ram=0;
 static uint64_t tsc_hz=0;
 static uint64_t boot_tsc=0;
 
+#define HEAP_BASE 0x1000000 
+static uint64_t heap_current = HEAP_BASE;
+
+void* kmalloc(size_t size) {
+    if (size == 0) return NULL;
+    size = (size + 7) & ~7; 
+    void* ptr = (void*)heap_current;
+    heap_current += size;
+    if (heap_current > HEAP_BASE + 0x4000000) return NULL; 
+    return ptr;
+}
+void kfree(void* ptr) { (void)ptr; }
+
 static inline void outb(uint16_t p, uint8_t v){ asm volatile("outb %0,%1"::"a"(v),"Nd"(p)); }
 static inline uint8_t inb(uint16_t p){ uint8_t v; asm volatile("inb %1,%0":"=a"(v):"Nd"(p)); return v; }
 
@@ -51,13 +64,11 @@ static uint16_t pit_read(void){
 }
 
 static void tsc_calibrate(void){
-
     outb(0x43, 0x34);
     outb(0x40, 0xFF);
     outb(0x40, 0xFF);
 
     while(pit_read() < 60000) asm volatile("pause");
-
     while(pit_read() < 60000) asm volatile("pause");
 
     uint16_t start = pit_read();
@@ -67,18 +78,17 @@ static void tsc_calibrate(void){
     while(pit_read() > target) asm volatile("pause");
 
     uint64_t tsc_end = rdtsc();
-
     uint64_t cycles = tsc_end - tsc_start;
-    tsc_hz = cycles * 1193182ULL / 10000ULL;
+    
+    tsc_hz = (cycles * 1193182ULL) / 10000ULL;
 
     if(tsc_hz < 100000000ULL) tsc_hz = 1000000000ULL;
 }
 
 static uint64_t uptime_ms(void){
+    if (tsc_hz == 0) return 0;
     uint64_t cycles = rdtsc() - boot_tsc;
-    uint64_t hz_k = tsc_hz / 1000ULL;
-    if(hz_k == 0) hz_k = 1;
-    return cycles / hz_k;
+    return (cycles * 1000ULL) / tsc_hz;
 }
 
 static uint32_t get_ticks(void){
@@ -86,8 +96,13 @@ static uint32_t get_ticks(void){
 }
 
 static void sleep_ms(uint32_t ms){
-    uint64_t target = uptime_ms() + ms;
-    while(uptime_ms() < target) asm volatile("pause");
+    uint64_t start = rdtsc();
+    uint64_t cycles_needed = (tsc_hz * (uint64_t)ms) / 1000ULL;
+    uint64_t end_tsc = start + cycles_needed;
+    
+    while(rdtsc() < end_tsc) {
+        asm volatile("pause");
+    }
 }
 
 typedef struct { uint16_t limit; uint64_t base; } __attribute__((packed)) idt_ptr_t;
@@ -150,8 +165,6 @@ static int strcmp(const char *a,const char *b){ while(*a&&*a==*b){a++;b++;} retu
 static int startswith(const char *s,const char *p){ while(*p) if(*s++!=*p++) return 0; return 1; }
 
 void exception_handler(void){
-    volatile uint32_t *fbb=fbi->address;
-    for(uint32_t i=0;i<fbi->height*pw;i++) fbb[i]=0x00AA0000;
     clear(); fg=0xFF0000;
     println("\n=== SYSTEM EXCEPTION ===");
     println("System halted - fatal error");
@@ -193,8 +206,23 @@ static void idt_init(void){
 
 static void cmd_help(void){
     fg=0x00FFFF; println("\n  === Commands ==="); fg=0xFFFFFF;
-    println("  help / clear / uname / echo / sleep / ticks / crash / fastfetch / reboot");
+    println("  help / clear / uname / echo / sleep / ticks / crash / fastfetch / reboot / memtest");
     println("");
+}
+
+static void cmd_memtest(void) {
+    fg = 0xDDDDDD;
+    print("  Allocating 1KB... ");
+    void* ptr = kmalloc(1024);
+    if(ptr) {
+        fg = 0x00FF00;
+        println("OK");
+        print("  Address: 0x"); print_hex((uint32_t)(uint64_t)ptr);
+        println("");
+    } else {
+        fg = 0xFF0000;
+        println("FAILED");
+    }
 }
 
 static void cmd_fastfetch(void){
@@ -254,17 +282,29 @@ static void shell(void){
             print("  Uptime: ");  print_int((uint32_t)(uptime_ms()/1000)); println("s");
         }
         else if(startswith(in,"sleep ")){
-            uint32_t ms=0;
-            for(int i=6;in[i]>='0'&&in[i]<='9';i++) ms=ms*10+(in[i]-'0');
-            fg=0x00FF00; print("  Sleeping "); print_int(ms); println("ms...");
-            sleep_ms(ms);
-            fg=0x00FF00; println("  Done!");
+            unsigned long long ms=0;
+            int valid = 0;
+            for(int i=6; in[i]>='0' && in[i]<='9'; i++) {
+                ms = ms*10 + (in[i]-'0');
+                valid = 1;
+            }
+            
+            if(!valid || ms == 0) {
+                fg=0xFF0000; println("  Invalid number");
+            } else {
+                if(ms > 3600000) ms = 3600000; 
+                
+                fg=0x00FF00; print("  Sleeping "); print_int((uint32_t)ms); println("ms...");
+                sleep_ms((uint32_t)ms);
+                fg=0x00FF00; println("  Done!");
+            }
         }
         else if(!strcmp(in,"crash")){
             fg=0xFF0000; println("  Crashing...");
             volatile int a=10,b=0,c=a/b; (void)c;
         }
         else if(!strcmp(in,"fastfetch")) cmd_fastfetch();
+        else if(!strcmp(in,"memtest"))   cmd_memtest();
         else if(!strcmp(in,"reboot"))    outb(0x64,0xFE);
         else if(in[0]){ fg=0xFF0000; print("  not found: "); println(in); }
     }
@@ -286,10 +326,13 @@ void kmain(void){
             struct limine_memmap_entry *e=memmap_request.response->entries[i];
             if(e->type==LIMINE_MEMMAP_USABLE) total_ram+=e->length;
         }
+    
     tsc_calibrate();
     boot_tsc=rdtsc();
+    
     idt_init();
     asm volatile("sti");
+    
     clear();
     fg=0x88AACC;
     println("   ______                        _____   _____ ");
