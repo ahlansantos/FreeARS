@@ -6,7 +6,7 @@
 FreeARS is a hobby x86_64 kernel written from scratch. Now with 64-bit mode, Multiboot2, RAM Disk filesystem, and universal framebuffer detection.
 
 **Current version:** 0.03  
-**Branch:** `64bit` (active development)
+**Branch:** `x86_64-legacy` (stable? - MAYBE final.)
 
 ---
 
