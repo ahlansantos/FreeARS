@@ -5,7 +5,7 @@
 FreeARS is a hobby x86_64 kernel written from scratch. UEFI boot via Limine, TSC-based timing, and now a working physical memory manager.
 
 **Current version:** 0.05  
-**Branch:** `64bit-uefi` (active development)
+**Branch:** `x86_64-uefi` (active development)
 
 ---
 
