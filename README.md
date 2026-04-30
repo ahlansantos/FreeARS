@@ -6,7 +6,7 @@
 FreeARS is a hobby x86 kernel written from scratch. It boots, has a graphical shell, handles interrupts, and doesn't catch fire (most of the time).
 
 **Current version:** 0.01  
-**Branch:** `32bit` (unused - unstable, final)
+**Branch:** `x86-legacy-final` (Legacy BIOS - Final)
 
 ---
 
