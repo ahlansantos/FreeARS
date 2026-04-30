@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <limine.h>
 #include "graphics/font.h"
+#include "drivers/keyboard.h"
 
 __attribute__((used, section(".limine_requests_start")))
 static volatile uint64_t limine_requests_start_marker[] = LIMINE_REQUESTS_START_MARKER;
@@ -148,26 +149,6 @@ static void clear(void){
 static int strcmp(const char *a,const char *b){ while(*a&&*a==*b){a++;b++;} return *a-*b; }
 static int startswith(const char *s,const char *p){ while(*p) if(*s++!=*p++) return 0; return 1; }
 
-static void readline(char *buf, int max){
-    static const char lo[]={0,0,'1','2','3','4','5','6','7','8','9','0','-','=','\b','\t','q','w','e','r','t','y','u','i','o','p','[',']','\n',0,'a','s','d','f','g','h','j','k','l',';','\'','`',0,'\\','z','x','c','v','b','n','m',',','.','/',0,'*',0,' '};
-    static const char up[]={0,0,'!','@','#','$','%','^','&','*','(',')','_','+','\b','\t','Q','W','E','R','T','Y','U','I','O','P','{','}','\n',0,'A','S','D','F','G','H','J','K','L',':','\"','~',0,'|','Z','X','C','V','B','N','M','<','>','?',0,'*',0,' '};
-    int i=0,shift=0,caps=0;
-    while(i<max-1){
-        while(!(inb(0x64)&1)) asm volatile("pause");
-        uint8_t sc=inb(0x60);
-        if(sc==0x2A||sc==0x36){shift=1;continue;}
-        if(sc==0xAA||sc==0xB6){shift=0;continue;}
-        if(sc==0x3A){caps=!caps;continue;}
-        if(sc&0x80) continue;
-        char c=(shift^caps)?up[sc]:lo[sc];
-        if(!c) continue;
-        if(c=='\n') break;
-        if(c=='\b'){if(i>0){i--;put('\b');}continue;}
-        buf[i++]=c; put(c);
-    }
-    buf[i]='\0'; put('\n');
-}
-
 void exception_handler(void){
     volatile uint32_t *fbb=fbi->address;
     for(uint32_t i=0;i<fbi->height*pw;i++) fbb[i]=0x00AA0000;
@@ -262,7 +243,7 @@ static void shell(void){
     char in[256];
     while(1){
         fg=0x00FF00; print("freeARS> "); fg=0xFFFFFF;
-        readline(in,256);
+        keyboard_readline(in, 256);
         if(!strcmp(in,"help"))        cmd_help();
         else if(!strcmp(in,"clear"))  clear();
         else if(!strcmp(in,"uname")){ fg=0x00FF00; println("  FreeARS 0.04 - Limine x86_64"); }
@@ -290,6 +271,10 @@ static void shell(void){
 }
 
 static void hcf(void){ for(;;) asm("hlt"); }
+
+void terminal_putchar(char c) {
+    put(c);
+}
 
 void kmain(void){
     if(LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision)==false) hcf();
