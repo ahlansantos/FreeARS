@@ -1,12 +1,9 @@
-Aqui está o README atualizado para a versão 0.04 com suporte UEFI e TSC:
-
-```markdown
 # FreeARS - Another Random System
 
 > *"I'm doing a (free) operating system (just a hobby, won't be big and professional like linux)"*  
 > — inspired by Linus Torvalds, 1991
 
-FreeARS is a hobby x86_64 kernel written from scratch. Now with **UEFI boot**, **Limine protocol**, **TSC timing**, and tickless operation.
+FreeARS is a hobby x86_64 kernel written from scratch. Now featuring **UEFI boot**, **Limine protocol**, and **TSC-based timing**.
 
 **Current version:** 0.04  
 **Branch:** `64bit-uefi` (active development)
@@ -15,51 +12,50 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with **UEFI boot**, *
 
 ## Screenshots
 
-*18:40 (6:40 PM) - 28/04/26 — IT BOOTED!!! WORKED ON 64 BIT MODE (QEMU) AFTER A COUPLE HOURS OF BUGS!*
+*28/04/26 — IT BOOTED!!! 64-bit mode (QEMU) after hours of bugs!*
 
-*10:30 - 30/04/26 - IT BOOTED ON A BAREMETAL LIKE VM (VirtualBox)!!! Another win!!*
+*30/04/26 — Booted on a baremetal-like VM (VirtualBox)!*
 
-*20:00~ (08:00~ PM) - 31/04/26 - UEFI BOOT WITH LIMINE!!! TSC TIMING WORKING!!!*
-
-*20:00~ (08:00~ PM) - 31/04/26 - BOOT ON VIRTUAL BOX!*
+*UEFI + Limine + TSC working!!!*
 
 ### UEFI Boot + fastfetch + TSC (QEMU)
 ![UEFI Boot](pictures/FreeARS_UEFI.png)
 
-### UEFI Boot + Successfull ram detection! (Virtual Box!)
+### UEFI Boot + RAM detection (VirtualBox)
 ![UEFI Boot VB](pictures/FreeARS_UEFI_VB.png)
 
 ---
 
 ## What's new in 0.04
 
-- **UEFI boot** via Limine bootloader (no more GRUB/BIOS)
-- **TSC (Time Stamp Counter) timing** — microsecond precision
-- **Tickless operation** — no more PIT IRQ jitter
-- **TSC calibration** via PIT (automatic frequency detection)
-- **Accurate sleep_ms()** — now sleeps exactly 1ms, not 10ms
-- **Better uptime tracking** — nanosecond resolution
-- **Limine protocol** — proper framebuffer detection on UEFI
-- **Removed PIT IRQ dependency** — cleaner interrupt handling
-- Works on **UEFI systems** (real hardware {MAYBE? Tests upcoming} + QEMU OVMF)
-- Also, credits to the limine-c-template!! I'm using the same license. I couldn't do it without a template, sadly.
+- **UEFI boot** via Limine (no more GRUB/BIOS)
+- **TSC (Time Stamp Counter) timing**
+- **Tickless operation** (no PIT IRQ scheduler)
+- **TSC calibration via PIT**
+- **Accurate `sleep_ms()`**
+- **Improved uptime tracking**
+- **Framebuffer via Limine protocol**
+- **Basic RAM detection (Limine memmap)**
+- Boots on **QEMU (OVMF)** and partially tested on **VirtualBox**
 
 ---
 
 ## Features
 
-- **UEFI boot** (Limine bootloader)
+- **UEFI boot** (Limine)
 - x86_64 long mode
-- Universal framebuffer (via Limine protocol)
-- Graphical shell with 8x16 bitmap font
-- **TSC-based timing** (calibrated via PIT)
-- Real CPU name detection via CPUID + RAM Detection
-- Commands: `help`, `clear`, `uname`, `echo`, `sleep`, `crash`, `ticks`, `fastfetch`, `reboot`
-- Dynamic memory allocator (`kmalloc`/`kfree`)
-- 4-level paging (PML4)
-- IDT with graphical exception handler
-- PS/2 Keyboard polling with Shift/Caps Lock
-- Custom ASCII art boot screen
+- Framebuffer rendering
+- Basic graphical shell (8x16 bitmap font)
+- **TSC-based timing**
+- CPUID CPU name detection
+- RAM size detection (usable memory only)
+- Basic command shell:
+  - `help`, `clear`, `uname`, `echo`
+  - `sleep`, `ticks`, `fastfetch`
+  - `crash`, `reboot`
+- IDT + basic exception handling
+- PS/2 keyboard input (polling, Shift/Caps support)
+- Custom ASCII boot screen
 
 ---
 
@@ -67,23 +63,24 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with **UEFI boot**, *
 
 | Aspect | PIT (0.03) | TSC (0.04) |
 |--------|------------|------------|
-| Resolution | 10ms | ~1ns |
-| sleep_ms(1) | 10-20ms | 1ms exact |
-| Read overhead | ~500 cycles | ~25 cycles |
-| IRQ overhead | Yes (16 regs) | None |
-| Jitter | ±5ms | ±0.001ms |
+| Resolution | ~10ms | ~1ns |
+| sleep_ms(1) | ~10-20ms | ~1ms |
+| Read cost | High | Very low |
+| IRQ usage | Yes | No |
+| Jitter | High | Minimal |
 
 ---
 
 ## What it lacks (still)
 
+- Memory allocator (`kmalloc` / `kfree`)
 - User mode (ring 3)
-- Multitasking / Scheduler (Hate this part bru)
-- Mouse support
+- Multitasking / Scheduler
+- Mouse input
 - Networking
 - GPU drivers
-- Real filesystem (FAT32/ext2)
-- Any practical use (still just a hobby)
+- Filesystem (FAT32/ext2)
+- Real-world usability (still a learning project)
 
 ---
 
@@ -91,15 +88,15 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with **UEFI boot**, *
 
 | Command | Description |
 |---------|-------------|
-| `help` | Show all commands |
+| `help` | Show commands |
 | `clear` | Clear screen |
 | `uname` | System info |
 | `echo <text>` | Print text |
-| `sleep <ms>` | Sleep milliseconds (exact with TSC) |
-| `crash` | Test exception handler |
-| `ticks` | Show uptime ticks (100Hz equivalent) |
-| `fastfetch` | System info with CPU name and TSC freq |
-| `reboot` | Reboot system (works on QEMU/hardware) |
+| `sleep <ms>` | Sleep using TSC |
+| `ticks` | Show uptime |
+| `fastfetch` | System overview |
+| `crash` | Trigger exception | -- May not work? Not tested yet. -- Yea, fixing it tomorrow maybe? It just reboots.
+| `reboot` | Reboot system |
 
 ---
 
@@ -114,29 +111,39 @@ FreeARS is a hobby x86_64 kernel written from scratch. Now with **UEFI boot**, *
 
 ---
 
-## History
+## Version history
 
 | Version | Description |
-|---------|-------------|
-| 0.01 | First release. 32-bit, VESA, Legacy BIOS |
-| 0.02 | 64-bit, Multiboot2, framebuffer, shell |
-| 0.03 | Universal FB detection, CPUID, RAM Disk FS, VirtualBox support |
-| **0.04** | **UEFI (Limine), TSC timing, tickless operation** |
+|--------|-------------|
+| 0.01 | 32-bit, VESA, BIOS |
+| 0.02 | 64-bit, Multiboot2, shell |
+| 0.03 | FB detection, CPUID, RAM detection |
+| **0.04** | **UEFI + Limine, TSC timing, tickless kernel** |
 
 ---
 
 ## Next steps (0.05)
 
-- [ ] APIC timer for preemptive multitasking
+- [ ] Memory allocator (`kmalloc` / `kfree`)
+- [ ] APIC timer
 - [ ] Basic scheduler (round-robin)
 - [ ] User mode (ring 3)
-- [ ] System calls
+- [ ] Syscalls
 - [ ] FAT32 driver
 - [ ] PCI enumeration
+
+---
+
+## Notes
+
+- TSC is calibrated using PIT for better accuracy
+- Currently uses busy-wait for sleep (no interrupts yet)
+- Designed for learning low-level systems
 
 ---
 
 ## License
 
 Do whatever you want. It's a hobby.
+
 
