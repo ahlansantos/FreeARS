@@ -336,6 +336,19 @@ static void cmd_fastfetch(void) {
     println("");
 }
 
+static void cursor_draw(int visible){
+    uint32_t color = visible ? fg : bg;
+    for(int r = 12; r < 16; r++) 
+        for(int co = 0; co < 8; co++)
+            px(gx + co, gy + r, color);
+}
+
+static void cursor_tick(void){
+    uint64_t ms = uptime_ms();
+    int visible = (ms / 500) % 2;
+    cursor_draw(visible);
+}
+
 static void shell(void) {
     char in[256];
     while (1) {

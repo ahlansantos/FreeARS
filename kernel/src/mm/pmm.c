@@ -7,13 +7,9 @@ static uint8_t *bitmap      = NULL;
 static uint64_t total_pages = 0;
 static uint64_t free_pages  = 0;
 
-// ---------- helpers do bitmap ----------
-
 static inline void bm_set(uint64_t page)   { bitmap[page / 8] |=  (1u << (page % 8)); }
 static inline void bm_clear(uint64_t page) { bitmap[page / 8] &= ~(1u << (page % 8)); }
 static inline int  bm_get(uint64_t page)   { return (bitmap[page / 8] >> (page % 8)) & 1; }
-
-// ---------- serial debug (sem depender do main.c) ----------
 
 static void pmm_serial_print(const char *s) {
     for (int i = 0; s[i]; i++) {
@@ -30,8 +26,6 @@ static void pmm_serial_hex(uint64_t n) {
     pmm_serial_print(buf);
 }
 
-// ---------- API pública ----------
-
 uint64_t pmm_phys_to_virt(uint64_t phys) {
     return phys + hhdm_off;
 }
@@ -39,8 +33,6 @@ uint64_t pmm_phys_to_virt(uint64_t phys) {
 void pmm_init(struct limine_memmap_response *memmap, uint64_t hhdm_offset) {
     hhdm_off = hhdm_offset;
 
-    // 1. Descobre o endereço físico mais alto entre regiões USABLE.
-    //    Ignorar reserved/MMIO evita bitmap gigante por causa de buracos de PCI.
     pmm_serial_print("=== memmap ===\n");
     uint64_t highest = 0;
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
@@ -63,7 +55,6 @@ void pmm_init(struct limine_memmap_response *memmap, uint64_t hhdm_offset) {
     pmm_serial_print(" bitmap_bytes="); pmm_serial_hex(bitmap_bytes);
     pmm_serial_print("\n");
 
-    // 2. Acha a primeira região USABLE >= 1MB grande o suficiente pro bitmap.
     bitmap = NULL;
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
         struct limine_memmap_entry *e = memmap->entries[i];
@@ -83,11 +74,9 @@ void pmm_init(struct limine_memmap_response *memmap, uint64_t hhdm_offset) {
         return;
     }
 
-    // 3. Marca tudo como ocupado (bit 1 = ocupado)
     for (uint64_t i = 0; i < total_pages; i++)
         bm_set(i);
 
-    // 4. Libera apenas as páginas USABLE do memmap
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
         struct limine_memmap_entry *e = memmap->entries[i];
         if (e->type != LIMINE_MEMMAP_USABLE) continue;
@@ -99,7 +88,6 @@ void pmm_init(struct limine_memmap_response *memmap, uint64_t hhdm_offset) {
         }
     }
 
-    // 5. Reserva as páginas que o próprio bitmap ocupa
     uint64_t bm_phys  = (uint64_t)bitmap - hhdm_off;
     uint64_t bm_pages = (bitmap_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
     for (uint64_t p = 0; p < bm_pages; p++) {
@@ -113,8 +101,6 @@ void pmm_init(struct limine_memmap_response *memmap, uint64_t hhdm_offset) {
     pmm_serial_print("  free_pages="); pmm_serial_hex(free_pages); pmm_serial_print("\n");
 }
 
-// Retorna endereço FÍSICO — use pmm_phys_to_virt() antes de escrever.
-// Começa em 1MB para nunca retornar páginas de firmware/BIOS.
 void *pmm_alloc_page(void) {
     uint64_t start = 0x100000 / PAGE_SIZE;
     for (uint64_t i = start; i < total_pages; i++) {
@@ -124,7 +110,7 @@ void *pmm_alloc_page(void) {
             return (void *)(i * PAGE_SIZE);
         }
     }
-    return NULL; // OOM
+    return NULL;
 }
 
 void pmm_free_page(void *phys) {
