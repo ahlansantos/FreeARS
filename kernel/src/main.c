@@ -4,6 +4,8 @@
 #include <limine.h>
 #include "mm/pmm.h"
 #include "mm/heap.h"
+#include "drivers/fs/ata.h"
+#include "drivers/fs/fat32.h"
 #include "graphics/font.h"
 #include "drivers/keyboard.h"
 
@@ -245,6 +247,8 @@ static void cmd_help(void) {
     fg = 0x00FFFF; println("\n  === Commands ==="); fg = 0xFFFFFF;
     println("  help / clear / uname / echo <txt> / sleep <ms>");
     println("  ticks / crash / fastfetch / reboot / memtest");
+    println("  lsblk / mount (wont work 0.06) / ls (wont work 0.06) / cat <file> (wont work 0.06) / write <file> <cont> (wont work 0.06)");
+    
     println("");
 }
 
@@ -302,7 +306,7 @@ static void cmd_fastfetch(void) {
     println("  |_|  |_|  \\___|\\___| /_/    \\_\\_|  \\_\\_____/ ");
     println("");
     fg = 0x88CC88; println("  user@FreeARS"); fg = 0xAAAAAA; println("  -----------");
-    fg = 0xDDDDDD; print("  OS:       "); fg = 0x88CC88; println("FreeARS 0.05");
+    fg = 0xDDDDDD; print("  OS:       "); fg = 0x88CC88; println("FreeARS 0.06");
     fg = 0xDDDDDD; print("  Branch:   "); fg = 0x88CC88; println("FreeARS/tree/x86_64-uefi");
     fg = 0xDDDDDD; print("  Kernel:   "); fg = 0x88CC88; println("x86_64 Limine UEFI");
     fg = 0xDDDDDD; print("  Shell:    "); fg = 0x88CC88; println("fsh 0.5");
@@ -353,6 +357,67 @@ static void cmd_fastfetch(void) {
     println("");
 }
 
+/* static void ls_print(const char *name, uint32_t size, int is_dir) {
+    fg = is_dir ? 0x88AAFF : 0xFFFFFF;
+    print("  ");
+    if (is_dir) print("[DIR] ");
+    print(name);
+    if (!is_dir) {
+        print("  (");
+        print_int(size);
+        print(" bytes)");
+    }
+    println("");
+} */
+
+/* static void cat_print(const uint8_t *data, uint32_t len) {
+    for (uint32_t i = 0; i < len; i++) put((char)data[i]);
+} */
+
+static void cmd_lsblk(void) {
+    fg = 0x00FFFF; println("\n  === ATA Disks ==="); fg = 0xFFFFFF;
+    int n = ata_init();
+    if (n == 0) { fg = 0xFF4444; println("  No disks found."); return; }
+    for (int i = 0; i < n; i++) {
+        ata_drive_t *d = ata_get_drive(i);
+        fg = 0x88CC88; print("  sd"); put('a' + i); print(": ");
+        fg = 0xFFFFFF; print(d->model);
+        print("  (");
+        print_int((uint32_t)(d->sector_count / 2048)); 
+        println(" MB)");
+    }
+    println("");
+}
+
+/* static void cmd_mount(void) {
+    if (fat32_mount(1, 0) == 0) {
+        fg = 0x88CC88; println("  fat32 mount on sdb");
+    } else {
+        fg = 0xFF4444; println("  cantm mount");
+    }
+} */
+
+/* static void cmd_ls(void) {
+    fg = 0x00FFFF; println("\n  === / ===");
+    fat32_ls(ls_print);
+    println("");
+} */
+
+/* static void cmd_cat(const char *filename) {
+    fg = 0xFFFFFF;
+    int r = fat32_cat(filename, cat_print);
+    if (r < 0) { fg = 0xFF4444; print("  File not found: "); println(filename); }
+    else put('\n');
+} */
+
+static int kstrlen(const char *s){ int i=0; while(s[i]) i++; return i; }
+
+/* static void cmd_write(const char *filename, const char *content) {
+    int r = fat32_write_file(filename, (const uint8_t*)content, kstrlen(content));
+    if (r == 0) { fg = 0x88CC88; print("  Escrito: "); println(filename); }
+    else { fg = 0xFF4444; println("  Erro ao escrever."); }
+} */
+
 static void shell(void) {
     char in[256];
     while (1) {
@@ -361,7 +426,7 @@ static void shell(void) {
 
         if      (!strcmp_local(in, "help"))      cmd_help();
         else if (!strcmp_local(in, "clear"))     clear();
-        else if (!strcmp_local(in, "uname"))   { fg = 0x00FF00; println("  FreeARS 0.05 - x86_64-uefi - Limine"); }
+        else if (!strcmp_local(in, "uname"))   { fg = 0x00FF00; println("  FreeARS 0.06 - x86_64-uefi - Limine"); }
         else if (startswith(in, "echo "))      { fg = 0x00FF00; print("  "); println(in + 5); }
         else if (!strcmp_local(in, "ticks"))   {
             fg = 0x00FF00;
@@ -385,6 +450,7 @@ static void shell(void) {
         else if (!strcmp_local(in, "fastfetch")) cmd_fastfetch();
         else if (!strcmp_local(in, "memtest"))   cmd_memtest();
         else if (!strcmp_local(in, "reboot"))    outb(0x64, 0xFE);
+        else if (!strcmp_local(in, "lsblk"))   cmd_lsblk();
         else if (in[0])                          { fg = 0xFF0000; print("  not found: "); println(in); }
     }
 }
@@ -440,7 +506,7 @@ void kmain(void) {
     println("  |_|  |_|  \\___|\\___| /_/    \\_\\_|  \\_\\_____/ ");
     println("");
 
-    fg = 0x88CC88; println("  FreeARS 0.05"); println("");
+    fg = 0x88CC88; println("  FreeARS 0.06"); println("");
     fg = 0xDDDDDD; print("  Framebuffer: "); fg = 0x88CC88;
     print_int(fbi->width); print("x"); print_int(fbi->height); println("");
     fg = 0xDDDDDD; print("  RAM:         "); fg = 0x88CC88;

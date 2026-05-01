@@ -6,10 +6,10 @@ ARCH := x86_64
 
 # Default user QEMU flags. These are appended to the QEMU command calls.
 # FS TEST 0.06
-QEMUFLAGS := -m 32G -enable-kvm -serial stdio \
-    -drive id=disk1,file=data.img,format=raw,if=ide,index=1
+QEMUFLAGS := -m 2G -enable-kvm -serial stdio \
+    -drive file=data.img,format=raw,if=ide,index=1,media=disk
 
-override IMAGE_NAME := FreeARS_0.05-$(ARCH)
+override IMAGE_NAME := FreeARS_0.06-$(ARCH)
 
 # Toolchain for building the 'limine' executable for the host.
 HOST_CC := cc
@@ -159,6 +159,10 @@ kernel/.deps-obtained:
 .PHONY: kernel
 kernel: kernel/.deps-obtained
 	$(MAKE) -C kernel
+
+data.img:
+	dd if=/dev/zero of=data.img bs=1M count=128
+	mkfs.fat -F32 data.img
 
 $(IMAGE_NAME).iso: limine-binary/limine kernel
 	rm -rf iso_root
