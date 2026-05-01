@@ -7,7 +7,6 @@ ARCH := x86_64
 # Default user QEMU flags. These are appended to the QEMU command calls.
 # FS TEST 0.06
 QEMUFLAGS := -m 2G -enable-kvm -serial stdio \
-    -drive file=data.img,format=raw,if=ide,index=1,media=disk
 
 override IMAGE_NAME := FreeARS_0.06-$(ARCH)
 
