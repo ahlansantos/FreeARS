@@ -50,7 +50,6 @@ static inline uint8_t inb(uint16_t p) {
     asm volatile("inb %1,%0" : "=a"(v) : "Nd"(p));
     return v;
 }
-
 static inline uint64_t rdtsc(void) {
     uint32_t lo, hi;
     asm volatile("rdtsc" : "=a"(lo), "=d"(hi));
@@ -165,6 +164,14 @@ static void clear(void) {
 
 void terminal_putchar(char c) { put(c); }
 
+static void cursor_draw(int visible) {
+    uint32_t color = visible ? fg : bg;
+    for (int co = 0; co < 8; co++) {
+        px(gx + co, gy + 6, color);
+        px(gx + co, gy + 7, color);
+    }
+}
+
 static void serial_init(void) {
     outb(0x3F8 + 1, 0x00); outb(0x3F8 + 3, 0x80);
     outb(0x3F8 + 0, 0x03); outb(0x3F8 + 1, 0x00);
@@ -236,7 +243,8 @@ static int startswith(const char *s, const char *p) {
 
 static void cmd_help(void) {
     fg = 0x00FFFF; println("\n  === Commands ==="); fg = 0xFFFFFF;
-    println("  help / clear / uname / echo / sleep / ticks / crash / fastfetch / reboot / memtest");
+    println("  help / clear / uname / echo <txt> / sleep <ms>");
+    println("  ticks / crash / fastfetch / reboot / memtest");
     println("");
 }
 
@@ -256,7 +264,8 @@ static void cmd_memtest(void) {
         else                      { fg = 0xFF0000; println("FAILED"); }
         pmm_free_page(phys);
         fg = 0x00FF00; println("  Page freed.");
-        fg = 0x88CC88; print("  Free pages after free: "); print_int((uint32_t)pmm_get_free_page_count()); println("");
+        fg = 0x88CC88; print("  Free pages after free: ");
+        print_int((uint32_t)pmm_get_free_page_count()); println("");
     } else {
         fg = 0xFF0000; println("FAILED - OOM");
     }
@@ -278,6 +287,7 @@ static void cmd_memtest(void) {
     } else {
         fg = 0xFF0000; println("FAILED");
     }
+    println("");
 }
 
 static void cmd_fastfetch(void) {
@@ -296,7 +306,8 @@ static void cmd_fastfetch(void) {
     fg = 0xDDDDDD; print("  Branch:   "); fg = 0x88CC88; println("FreeARS/tree/x86_64-uefi");
     fg = 0xDDDDDD; print("  Kernel:   "); fg = 0x88CC88; println("x86_64 Limine UEFI");
     fg = 0xDDDDDD; print("  Shell:    "); fg = 0x88CC88; println("fsh 0.5");
-    fg = 0xDDDDDD; print("  Credits:  "); fg = 0x88CC88; println("ahlansantos - Main Dev and limine-c-template for being a bootloader base in this branch.");
+    fg = 0xDDDDDD; print("  Credits:  "); fg = 0x88CC88;
+    println("ahlansantos - Main Dev | limine-c-template");
 
     uint64_t ms = uptime_ms();
     uint32_t s = (uint32_t)(ms / 1000), h = s / 3600, m = (s % 3600) / 60; s = s % 60;
@@ -316,15 +327,21 @@ static void cmd_fastfetch(void) {
     fg = 0xDDDDDD; print("  CPU:      "); fg = 0x88CC88;
     uint32_t eax, ebx, ecx, edx; char cpu[49] = {0};
     asm volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(0x80000002));
-    *(uint32_t*)(cpu+ 0)=eax; *(uint32_t*)(cpu+ 4)=ebx; *(uint32_t*)(cpu+ 8)=ecx; *(uint32_t*)(cpu+12)=edx;
+    *(uint32_t*)(cpu+ 0)=eax; *(uint32_t*)(cpu+ 4)=ebx;
+    *(uint32_t*)(cpu+ 8)=ecx; *(uint32_t*)(cpu+12)=edx;
     asm volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(0x80000003));
-    *(uint32_t*)(cpu+16)=eax; *(uint32_t*)(cpu+20)=ebx; *(uint32_t*)(cpu+24)=ecx; *(uint32_t*)(cpu+28)=edx;
+    *(uint32_t*)(cpu+16)=eax; *(uint32_t*)(cpu+20)=ebx;
+    *(uint32_t*)(cpu+24)=ecx; *(uint32_t*)(cpu+28)=edx;
     asm volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(0x80000004));
-    *(uint32_t*)(cpu+32)=eax; *(uint32_t*)(cpu+36)=ebx; *(uint32_t*)(cpu+40)=ecx; *(uint32_t*)(cpu+44)=edx;
+    *(uint32_t*)(cpu+32)=eax; *(uint32_t*)(cpu+36)=ebx;
+    *(uint32_t*)(cpu+40)=ecx; *(uint32_t*)(cpu+44)=edx;
     cpu[48] = 0; int cp = 0; while (cpu[cp] == ' ') cp++; println(&cpu[cp]);
 
     fg = 0xDDDDDD; print("  TSC:      "); fg = 0x88CC88;
     print_int((uint32_t)(tsc_hz / 1000000)); println(" MHz");
+
+    fg = 0xDDDDDD; print("  PMM:      "); fg = 0x88CC88;
+    print_int((uint32_t)pmm_get_free_page_count()); println(" pages free");
     println("");
 
     uint32_t cols[] = {0xCC88AA, 0xCCCC88, 0x88CC88, 0x88AACC, 0x8888CC};
@@ -336,37 +353,26 @@ static void cmd_fastfetch(void) {
     println("");
 }
 
-static void cursor_draw(int visible){
-    uint32_t color = visible ? fg : bg;
-    for(int r = 12; r < 16; r++) 
-        for(int co = 0; co < 8; co++)
-            px(gx + co, gy + r, color);
-}
-
-static void cursor_tick(void){
-    uint64_t ms = uptime_ms();
-    int visible = (ms / 500) % 2;
-    cursor_draw(visible);
-}
-
 static void shell(void) {
     char in[256];
     while (1) {
         fg = 0x00FF00; print("freeARS> "); fg = 0xFFFFFF;
         keyboard_readline(in, 256);
 
-        if      (!strcmp_local(in, "help"))        cmd_help();
-        else if (!strcmp_local(in, "clear"))       clear();
-        else if (!strcmp_local(in, "uname"))     { fg = 0x00FF00; println("  FreeARS 0.05 - x86_64-uefi - Limine"); }
-        else if (startswith(in, "echo "))        { fg = 0x00FF00; print("  "); println(in + 5); }
-        else if (!strcmp_local(in, "ticks"))     {
+        if      (!strcmp_local(in, "help"))      cmd_help();
+        else if (!strcmp_local(in, "clear"))     clear();
+        else if (!strcmp_local(in, "uname"))   { fg = 0x00FF00; println("  FreeARS 0.05 - x86_64-uefi - Limine"); }
+        else if (startswith(in, "echo "))      { fg = 0x00FF00; print("  "); println(in + 5); }
+        else if (!strcmp_local(in, "ticks"))   {
             fg = 0x00FF00;
             print("  Ticks: ");  print_int(get_ticks());
             print("  Uptime: "); print_int((uint32_t)(uptime_ms() / 1000)); println("s");
         }
         else if (startswith(in, "sleep ")) {
             unsigned long long ms = 0; int valid = 0;
-            for (int i = 6; in[i] >= '0' && in[i] <= '9'; i++) { ms = ms * 10 + (in[i] - '0'); valid = 1; }
+            for (int i = 6; in[i] >= '0' && in[i] <= '9'; i++) {
+                ms = ms * 10 + (in[i] - '0'); valid = 1;
+            }
             if (!valid || ms == 0) { fg = 0xFF0000; println("  Invalid number"); }
             else {
                 if (ms > 3600000) ms = 3600000;
@@ -387,7 +393,8 @@ static void hcf(void) { for (;;) asm("hlt"); }
 
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false) hcf();
-    if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) hcf();
+    if (framebuffer_request.response == NULL ||
+        framebuffer_request.response->framebuffer_count < 1) hcf();
 
     fbi = framebuffer_request.response->framebuffers[0];
     pw  = fbi->pitch / 4;
@@ -417,6 +424,9 @@ void kmain(void) {
     boot_tsc = rdtsc();
     idt_init();
     asm volatile("sti");
+
+    keyboard_set_cursor_cb(cursor_draw);
+
     clear();
 
     fg = 0x88AACC;
@@ -431,12 +441,15 @@ void kmain(void) {
     println("");
 
     fg = 0x88CC88; println("  FreeARS 0.05"); println("");
-    fg = 0xDDDDDD; print("  Framebuffer: "); fg = 0x88CC88; print_int(fbi->width); print("x"); print_int(fbi->height); println("");
-    fg = 0xDDDDDD; print("  RAM: "); fg = 0x88CC88;
+    fg = 0xDDDDDD; print("  Framebuffer: "); fg = 0x88CC88;
+    print_int(fbi->width); print("x"); print_int(fbi->height); println("");
+    fg = 0xDDDDDD; print("  RAM:         "); fg = 0x88CC88;
     if (total_ram >= 1073741824) { print_int(total_ram / 1073741824); println(" GB"); }
     else                         { print_int(total_ram / 1048576);    println(" MB"); }
-    fg = 0xDDDDDD; print("  TSC: "); fg = 0x88CC88; print_int((uint32_t)(tsc_hz / 1000000)); println(" MHz");
-    fg = 0xDDDDDD; print("  PMM: "); fg = 0x88CC88; print_int((uint32_t)pmm_get_free_page_count()); println(" pages free");
+    fg = 0xDDDDDD; print("  TSC:         "); fg = 0x88CC88;
+    print_int((uint32_t)(tsc_hz / 1000000)); println(" MHz");
+    fg = 0xDDDDDD; print("  PMM:         "); fg = 0x88CC88;
+    print_int((uint32_t)pmm_get_free_page_count()); println(" pages free");
     println("");
     fg = 0xAAAAAA; println("  Type 'help' for available commands."); println("");
 
